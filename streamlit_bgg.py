@@ -1,7 +1,7 @@
 import os
 
 try:
-    os.system("pip install plotly")
+    os.system("pip install plotly.express")
 except:
     pass
 try:
