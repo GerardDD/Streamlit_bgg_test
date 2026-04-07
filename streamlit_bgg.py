@@ -1,3 +1,13 @@
+try:
+    pip install plotly
+except:
+    continue()
+try:
+    pip install pandas
+except:
+    continue()
+
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
