@@ -1,14 +1,5 @@
 import os
 
-try:
-    os.system("pip install plotly.express")
-except:
-    pass
-try:
-    os.system("pip install pandas")
-except:
-    pass
-
 
 import streamlit as st
 import pandas as pd
