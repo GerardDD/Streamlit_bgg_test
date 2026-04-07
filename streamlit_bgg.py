@@ -5,10 +5,10 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-st.title("📚 Boardgame Collection Explorer")
+st.title("📚 Ludoteca de dumito")
 
 # --- Carga de CSV ---
-st.header("Carga de archivo CSV")
+st.header("Llista completa")
 archivo = True  # para pruebas locales
 
 if archivo:
