@@ -1,11 +1,11 @@
 try:
-    pip install plotly
+  pip install plotly
 except:
-    continue()
+  continue()
 try:
-    pip install pandas
+  pip install pandas
 except:
-    continue()
+  continue()
 
 
 import streamlit as st
