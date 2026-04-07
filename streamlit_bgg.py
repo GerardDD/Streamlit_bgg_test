@@ -1,11 +1,13 @@
+import os
+
 try:
-  pip install plotly
+    os.system("pip install plotly")
 except:
-  continue()
+    pass
 try:
-  pip install pandas
+    os.system("pip install pandas")
 except:
-  continue()
+    pass
 
 
 import streamlit as st
