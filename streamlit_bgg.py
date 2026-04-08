@@ -136,7 +136,7 @@ if archivo:
     st.plotly_chart(fig2)
     
     # ============================
-    # 🔵 GRÁFICO 5: Top 10 jocs més jugats
+    # 🔵 GRÁFICO 5: Top 10 jocs més jugats (versió millorada)
     # ============================
 
     st.subheader("🏆 Top 10 jocs més jugats")
@@ -146,20 +146,31 @@ if archivo:
 
     fig5 = px.bar(
         top10,
-        x="nom_del_joc",
-        y="num_partides",
+        x="num_partides",
+        y="nom_del_joc",
+        orientation="h",
         text="num_partides",
         title="Top 10 jocs més jugats",
+        color="num_partides",
+        color_continuous_scale="Blues"
     )
 
-    fig5.update_traces(textposition="outside")
+    fig5.update_traces(
+        textposition="outside",
+        marker=dict(line=dict(color="black", width=0.5))
+    )
+
     fig5.update_layout(
-        xaxis_title="Joc",
-        yaxis_title="Nombre de partides",
-        xaxis_tickangle=-45
+        xaxis_title="Nombre de partides",
+        yaxis_title="Joc",
+        yaxis=dict(autorange="reversed"),  # Para que el más jugado quede arriba
+        coloraxis_showscale=False,
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)"
     )
 
-    st.plotly_chart(fig5)
+    st.plotly_chart(fig5, use_container_width=True)
+
 
 
     # ============================
