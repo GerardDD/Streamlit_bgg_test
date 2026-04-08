@@ -142,7 +142,7 @@ if archivo:
     st.subheader("🏆 Top 10 jocs més jugats")
 
     # Ordenar por número de partidas y seleccionar top 10
-    top10 = df.sort_values("num_partides", ascending=False).head(10)
+    top10 = df_filtrado.sort_values("num_partides", ascending=False).head(10)
 
     fig5 = px.bar(
         top10,
