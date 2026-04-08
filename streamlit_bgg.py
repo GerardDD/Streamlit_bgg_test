@@ -241,7 +241,7 @@ if archivo:
     st.subheader("📌 Relació entre variables i nombre de partides")
 
     # Selector de variable para el eje X
-    opcion_y = st.selectbox(
+    opcion_x = st.selectbox(
         "Selecciona la variable per comparar amb nombre de partides:",
         options={
             "pes": "Pes (complexitat)",
