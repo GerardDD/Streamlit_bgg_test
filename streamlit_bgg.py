@@ -113,6 +113,12 @@ if archivo:
         nbins=30,
         title="Distribució d'anys de publicació"
     )
+
+    fig2.update_layout(
+        xaxis_title="Any de publicació",
+        yaxis_title="Recompte"
+    )
+    
     st.plotly_chart(fig2)
 
     # ============================
