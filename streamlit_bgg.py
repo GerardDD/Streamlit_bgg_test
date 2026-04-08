@@ -301,6 +301,34 @@ if archivo:
         st.warning(f"Tens {len(df_vergonya)} jocs sense estrenar...")
         st.dataframe(df_vergonya[["nom_del_joc", "yearpublished", "pes", "version_languages", "itemtype"]])
 
+    # ============================
+    # 🔵 MISSATGES DELS USUARIS
+    # ============================
+
+    st.subheader("💬 Deixa un missatge")
+
+    # Inicializar lista de mensajes en la sesión
+    if "missatges" not in st.session_state:
+        st.session_state.missatges = []
+
+    # Caja de texto
+    nou_missatge = st.text_area("Escriu el teu missatge aquí:")
+
+    # Botón para enviar
+    if st.button("Enviar missatge"):
+        if nou_missatge.strip():
+            st.session_state.missatges.append(nou_missatge.strip())
+            st.success("Missatge afegit!")
+        else:
+            st.warning("El missatge no pot estar buit.")
+
+    # Mostrar mensajes enviados
+    if st.session_state.missatges:
+        st.write("### 📜 Missatges enviats:")
+        for idx, msg in enumerate(st.session_state.missatges, 1):
+            st.write(f"**{idx}.** {msg}")
+
+
 
 
 else:
