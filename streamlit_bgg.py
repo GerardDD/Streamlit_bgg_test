@@ -6,6 +6,28 @@ import pandas as pd
 import plotly.express as px
 
 # ============================
+# 🔵 CARGA DE DATOS (CSV por defecto + CSV manual)
+# ============================
+
+st.sidebar.subheader("📂 Dades d'entrada")
+
+archivo_subido = st.sidebar.file_uploader(
+    "Puja un CSV personalitzat (opcional):",
+    type=["csv"]
+)
+
+if archivo_subido is not None:
+    # Leer CSV subido por el usuario
+    df = pd.read_csv(archivo_subido)
+    st.sidebar.success("CSV carregat correctament!")
+else:
+    # CSV por defecto
+    df = pd.read_csv("collection.csv")
+    st.sidebar.info("S'està utilitzant el CSV per defecte.")
+
+
+
+# ============================
 # 🔵 ESTILO PERSONALIZADO
 # ============================
 st.set_page_config(layout="wide")
@@ -59,7 +81,7 @@ archivo = True  # para pruebas locales
 
 if archivo:
     #df = pd.read_csv("C:/Users/47173276T/Downloads/collection.csv")
-    df = pd.read_csv("collection.csv")
+    #df = pd.read_csv("collection.csv")
     
     # Eliminem columnes buides
     df = df.dropna(axis=1, how="all")
