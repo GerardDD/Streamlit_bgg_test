@@ -179,8 +179,11 @@ if archivo:
     df = df.dropna(axis=1, how="all")
 
     # Idiomes sense informar els passem tots a Desconegut
-    df["version_languages"] = df["version_languages"].fillna("Desconegut")
-    df["version_languages"] = df["version_languages"].replace("", "Desconegut")
+    try:
+        df["version_languages"] = df["version_languages"].fillna("Desconegut")
+        df["version_languages"] = df["version_languages"].replace("", "Desconegut")
+    except:
+        pass
 
     # 🔥 Renombrar columnas
     df = df.rename(columns={
