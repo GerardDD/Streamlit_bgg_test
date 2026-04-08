@@ -22,6 +22,14 @@ if archivo:
     df["version_languages"] = df["version_languages"].fillna("Desconegut")
     df["version_languages"] = df["version_languages"].replace("", "Desconegut")
 
+    # 🔥 Renombrar columnas
+    df = df.rename(columns={
+        "objectname": "nom_del_joc",
+        "numplays": "num_partides",
+        "avgweight": "pes",
+        "average": "nota_bgg"
+    })
+
     #st.subheader("Contenido del archivo")
     #st.dataframe(df)
 
