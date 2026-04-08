@@ -119,18 +119,27 @@ if archivo:
     # 🔵 GRÁFICO 3: Juegos por idioma
     # ============================
 
-    st.subheader("🌍 Jocs per idioma")
+    st.subheader("🌍 Juegos por idioma")
 
-    conteo_idiomas = df_filtrado["version_languages"].value_counts().reset_index()
+    # Checkbox para incluir/excluir "Desconegut" SOLO en el gráfico
+    mostrar_desconegut = st.checkbox("Mostrar 'Desconegut' en el gráfico", value=False)
+
+    # Filtrado local para el gráfico
+    df_idiomas_graf = df_filtrado.copy()
+    if not mostrar_desconegut:
+        df_idiomas_graf = df_idiomas_graf[df_idiomas_graf["version_languages"] != "Desconegut"]
+
+    conteo_idiomas = df_idiomas_graf["version_languages"].value_counts().reset_index()
     conteo_idiomas.columns = ["idioma", "cantidad"]
 
     fig3 = px.pie(
         conteo_idiomas,
         names="idioma",
         values="cantidad",
-        title="Distribució per idioma"
+        title="Distribución por idioma"
     )
     st.plotly_chart(fig3)
+
 
 else:
     st.info("Sube un CSV para generar el dashboard.")
