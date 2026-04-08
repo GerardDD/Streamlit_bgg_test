@@ -233,23 +233,46 @@ if archivo:
         title="Distribución por idioma"
     )
     st.plotly_chart(fig3)
+    
     # ============================
-    # 🔵 GRÁFICO 4: Scatter pes vs número de partides
+    # 🔵 GRÁFICO 4: Scatter interactiu
     # ============================
 
-    st.subheader("⚖️ Relació entre pes i nombre de partides")
+    st.subheader("📌 Relació entre variables i nombre de partides")
 
+    # Selector de variable para el eje X
+    opcion_x = st.selectbox(
+        "Selecciona la variable per comparar amb nombre de partides:",
+        options={
+            "pes": "Pes (complexitat)",
+            "nota_bgg": "Nota BGG"
+        }
+    )
+
+    # Crear scatter dinámico
     fig4 = px.scatter(
         df_filtrado,
-        x="pes",
+        x=opcion_x,
         y="num_partides",
         hover_name="nom_del_joc",
-        title="Pes vs Nombre de Partides",
-        labels={"pes": "Pes (complexitat)", "num_partides": "Nombre de partides"},
+        title=f"{opcion_x} vs Nombre de partides",
+        labels={
+            opcion_x: opcion_x,
+            "num_partides": "Nombre de partides"
+        },
+        color="num_partides",
+        color_continuous_scale="Blues"
     )
 
     fig4.update_traces(marker=dict(size=10, opacity=0.7))
-    st.plotly_chart(fig4)
+    fig4.update_layout(
+        xaxis_title=opcion_x,
+        yaxis_title="Nombre de partides",
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)"
+    )
+
+    st.plotly_chart(fig4, use_container_width=True)
 
     # ============================
     # 🔵 LISTA DE LA VERGÜENZA
