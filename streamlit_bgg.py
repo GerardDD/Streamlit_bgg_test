@@ -260,8 +260,7 @@ if archivo:
             opcion_x: opcion_x,
             "num_partides": "Nombre de partides"
         },
-        color="num_partides",
-        color_continuous_scale="Blues"
+
     )
 
     fig4.update_traces(marker=dict(size=10, opacity=1))
