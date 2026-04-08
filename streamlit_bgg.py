@@ -87,7 +87,43 @@ if archivo:
     if idioma_sel:
         df_filtrado = df_filtrado[df_filtrado["version_languages"].isin(idioma_sel)]
 
+
     st.subheader("La col·lecció")
+
+    # ============================
+    # 🔵 KPIs PRINCIPALS
+    # ============================
+
+    st.subheader("📌 Indicadors principals del filtre actual")
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.metric(
+            label="🎯 Jocs filtrats",
+            value=len(df_filtrado)
+        )
+
+    with col2:
+        st.metric(
+            label="⚖️ Pes mitjà",
+            value=round(df_filtrado["pes"].mean(), 2) if not df_filtrado.empty else "—"
+        )
+
+    with col3:
+        st.metric(
+            label="⭐ Nota BGG mitjana",
+            value=round(df_filtrado["nota_bgg"].mean(), 2) if not df_filtrado.empty else "—"
+        )
+
+    with col4:
+        st.metric(
+            label="🎲 Total de partides",
+            value=int(df_filtrado["num_partides"].sum()) if not df_filtrado.empty else "—"
+        )
+
+
+    
     st.dataframe(df_filtrado)
 
     # ============================
