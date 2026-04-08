@@ -95,10 +95,16 @@ if archivo:
         conteo_epocas,
         x="epoca",
         y="cantidad",
-        text="quantitat",
+        text="cantidad",
         title="Jocs per època"
     )
     fig1.update_traces(textposition="outside")
+    fig1.update_layout(
+        xaxis_title="època",
+        yaxis_title="quantitat"
+    )
+   
+    
     st.plotly_chart(fig1)
 
     # ============================
