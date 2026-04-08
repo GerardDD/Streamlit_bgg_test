@@ -14,6 +14,8 @@ archivo = True  # para pruebas locales
 if archivo:
     #df = pd.read_csv("C:/Users/47173276T/Downloads/collection.csv")
     df = pd.read_csv("collection.csv")
+    # 🔥 Eliminar columnas completamente vacías
+    df = df.dropna(axis=1, how="all")
     st.subheader("Contenido del archivo")
     st.dataframe(df)
 
