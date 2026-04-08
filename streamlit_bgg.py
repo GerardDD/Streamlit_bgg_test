@@ -47,26 +47,7 @@ st.markdown("""
         .stButton>button, .stTextInput>div>div>input, .stSelectbox>div>div>div {
             border-radius: 8px;
         }
-        /* Ajustar padding general en móviles */
-        @media (max-width: 600px) {
-            .stApp {
-                padding: 0.5rem !important;
-            }
-        }
 
-        /* Reducir tamaño de títulos en móvil */
-        @media (max-width: 600px) {
-            h1, h2, h3 {
-                font-size: 1.2rem !important;
-            }
-        }
-
-        /* Hacer que los widgets ocupen todo el ancho */
-        @media (max-width: 600px) {
-            .stButton>button, .stSelectbox, .stTextInput, .stSlider {
-                width: 100% !important;
-            }
-        }
         
     </style>
     """, unsafe_allow_html=True)
