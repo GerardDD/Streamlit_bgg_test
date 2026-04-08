@@ -14,8 +14,14 @@ archivo = True  # para pruebas locales
 if archivo:
     #df = pd.read_csv("C:/Users/47173276T/Downloads/collection.csv")
     df = pd.read_csv("collection.csv")
-    # 🔥 Eliminar columnas completamente vacías
+    
+    # Eliminem columnes buides
     df = df.dropna(axis=1, how="all")
+
+    # Idiomes sense informar els passem tots a Desconegut
+    df["version_languages"] = df["version_languages"].fillna("Desconegut")
+    df["version_languages"] = df["version_languages"].replace("", "Desconegut")
+
     st.subheader("Contenido del archivo")
     st.dataframe(df)
 
@@ -56,7 +62,8 @@ if archivo:
     idioma_sel = st.sidebar.multiselect(
         "Idioma:",
         options=idiomas,
-        default=idiomas[:5] if len(idiomas) > 5 else idiomas
+        # default=idiomas[:5] if len(idiomas) > 5 else idiomas
+        default=idiomas
     )
 
     # Aplicar filtros
