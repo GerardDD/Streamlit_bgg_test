@@ -305,7 +305,7 @@ if archivo:
     # 🔵 MISSATGES DELS USUARIS
     # ============================
 
-    st.subheader("💬 Deixa un missatge")
+    st.subheader("💬 Deixa un missatge (NO OPERATIU ENCARA)")
 
     # Inicializar lista de mensajes en la sesión
     if "missatges" not in st.session_state:
