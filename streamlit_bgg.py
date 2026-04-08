@@ -27,18 +27,19 @@ if archivo:
         "objectname": "nom_del_joc",
         "numplays": "num_partides",
         "avgweight": "pes",
-        "average": "nota_bgg"
+        "average": "nota_bgg",
+        "yearpublished":"any_publicació"
     })
 
     #st.subheader("Contenido del archivo")
     #st.dataframe(df)
 
     # --- Convertir año a numérico ---
-    df["yearpublished"] = pd.to_numeric(df["yearpublished"], errors="coerce")
+    df["any_publicació"] = pd.to_numeric(df["any_publicació"], errors="coerce")
 
     # --- Crear columna de épocas ---
     df["epocas"] = pd.cut(
-        df["yearpublished"],
+        df["any_publicació"],
         bins=[-3000, 1900, 2020, 2050],
         labels=["Antiguitat", "Moderna", "Post-Pandèmia"]
     )
@@ -57,8 +58,8 @@ if archivo:
     )
 
     # Filtro por rango de años
-    min_year = int(df["yearpublished"].min(skipna=True))
-    max_year = int(df["yearpublished"].max(skipna=True))
+    min_year = int(df["any_publicació"].min(skipna=True))
+    max_year = int(df["any_publicació"].max(skipna=True))
 
     year_range = st.sidebar.slider(
         "Rang d'anys:",
@@ -81,7 +82,7 @@ if archivo:
         df_filtrado = df_filtrado[df_filtrado["epocas"].isin(epocas_sel)]
 
     df_filtrado = df_filtrado[
-        df_filtrado["yearpublished"].between(year_range[0], year_range[1], inclusive="both")
+        df_filtrado["any_publicació"].between(year_range[0], year_range[1], inclusive="both")
     ]
 
     if idioma_sel:
@@ -164,7 +165,7 @@ if archivo:
 
     fig2 = px.histogram(
         df_filtrado,
-        x="yearpublished",
+        x="any_publicació",
         nbins=30,
         title="Distribució d'anys de publicació"
     )
@@ -299,7 +300,7 @@ if archivo:
         st.success("🎉 No tens cap joc sense jugar! Bona feina!")
     else:
         st.warning(f"Tens {len(df_vergonya)} jocs sense estrenar...")
-        st.dataframe(df_vergonya[["nom_del_joc", "yearpublished", "pes", "version_languages", "itemtype"]])
+        st.dataframe(df_vergonya[["nom_del_joc", "any_publicació", "pes", "version_languages", "itemtype"]])
 
     # ============================
     # 🔵 MISSATGES DELS USUARIS
