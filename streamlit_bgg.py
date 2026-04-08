@@ -159,6 +159,38 @@ if archivo:
         title="Distribución por idioma"
     )
     st.plotly_chart(fig3)
+    # ============================
+    # 🔵 GRÁFICO 4: Scatter pes vs número de partides
+    # ============================
+
+    st.subheader("⚖️ Relació entre pes i nombre de partides")
+
+    fig4 = px.scatter(
+        df_filtrado,
+        x="pes",
+        y="num_partides",
+        hover_name="nom_del_joc",
+        title="Pes vs Nombre de Partides",
+        labels={"pes": "Pes (complexitat)", "num_partides": "Nombre de partides"},
+    )
+
+    fig4.update_traces(marker=dict(size=10, opacity=0.7))
+    st.plotly_chart(fig4)
+
+    # ============================
+    # 🔵 LISTA DE LA VERGÜENZA
+    # ============================
+
+    st.subheader("😅 Llista de la vergonya (jocs sense jugar)")
+
+    df_vergonya = df[df["num_partides"] == 0].sort_values("nom_del_joc")
+
+    if df_vergonya.empty:
+        st.success("🎉 No tens cap joc sense jugar! Bona feina!")
+    else:
+        st.warning(f"Tens {len(df_vergonya)} jocs sense estrenar...")
+        st.dataframe(df_vergonya[["nom_del_joc", "yearpublished", "pes", "version_languages"]])
+
 
 
 else:
