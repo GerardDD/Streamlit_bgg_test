@@ -39,7 +39,7 @@ if archivo:
     # 🔵 FILTROS INTERACTIVOS
     # ============================
 
-    st.sidebar.header("Filtros")
+    st.sidebar.header("Filtres")
 
     # Filtro por época
     epocas_sel = st.sidebar.multiselect(
@@ -89,7 +89,7 @@ if archivo:
     conteo_epocas = df_filtrado["epocas"].value_counts().reset_index()
     conteo_epocas.columns = ["epoca", "cantidad"]
 
-    st.subheader("📊 Distribución de juegos por época")
+    st.subheader("📊 Distribució de jocs per època")
 
     fig1 = px.bar(
         conteo_epocas,
@@ -105,13 +105,13 @@ if archivo:
     # 🔵 GRÁFICO 2: Histograma de años
     # ============================
 
-    st.subheader("📈 Histograma de años publicados")
+    st.subheader("📈 Histograma per any de publicació")
 
     fig2 = px.histogram(
         df_filtrado,
         x="yearpublished",
         nbins=30,
-        title="Distribución de años de publicación"
+        title="Distribució d'anys de publicació"
     )
     st.plotly_chart(fig2)
 
@@ -119,7 +119,7 @@ if archivo:
     # 🔵 GRÁFICO 3: Juegos por idioma
     # ============================
 
-    st.subheader("🌍 Juegos por idioma")
+    st.subheader("🌍 Jocs per idioma")
 
     conteo_idiomas = df_filtrado["version_languages"].value_counts().reset_index()
     conteo_idiomas.columns = ["idioma", "cantidad"]
@@ -128,7 +128,7 @@ if archivo:
         conteo_idiomas,
         names="idioma",
         values="cantidad",
-        title="Distribución por idioma"
+        title="Distribució per idioma"
     )
     st.plotly_chart(fig3)
 
