@@ -177,7 +177,7 @@ if archivo:
     # 🔵 GRÁFICO 3: Juegos por idioma
     # ============================
 
-    st.subheader("🌍 Juegos por idioma")
+    st.subheader("🌍 Jocs per idioma")
 
     # Checkbox para incluir/excluir "Desconegut" SOLO en el gráfico
     mostrar_desconegut = st.checkbox("Mostrar 'Desconegut' al gràfic", value=False)
