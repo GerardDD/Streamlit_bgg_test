@@ -134,6 +134,33 @@ if archivo:
     )
     
     st.plotly_chart(fig2)
+    
+    # ============================
+    # 🔵 GRÁFICO 5: Top 10 jocs més jugats
+    # ============================
+
+    st.subheader("🏆 Top 10 jocs més jugats")
+
+    # Ordenar por número de partidas y seleccionar top 10
+    top10 = df.sort_values("num_partides", ascending=False).head(10)
+
+    fig5 = px.bar(
+        top10,
+        x="nom_del_joc",
+        y="num_partides",
+        text="num_partides",
+        title="Top 10 jocs més jugats",
+    )
+
+    fig5.update_traces(textposition="outside")
+    fig5.update_layout(
+        xaxis_title="Joc",
+        yaxis_title="Nombre de partides",
+        xaxis_tickangle=-45
+    )
+
+    st.plotly_chart(fig5)
+
 
     # ============================
     # 🔵 GRÁFICO 3: Juegos por idioma
