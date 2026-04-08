@@ -241,7 +241,7 @@ if archivo:
     st.subheader("📌 Relació entre variables i nombre de partides")
 
     # Selector de variable para el eje X
-    opcion_x = st.selectbox(
+    opcion_y = st.selectbox(
         "Selecciona la variable per comparar amb nombre de partides:",
         options={
             "pes": "Pes (complexitat)",
@@ -252,22 +252,22 @@ if archivo:
     # Crear scatter dinámico
     fig4 = px.scatter(
         df_filtrado,
-        x=opcion_x,
-        y="num_partides",
+        x="num_partides",
+        y=opcion_y,
         hover_name="nom_del_joc",
-        title=f"{opcion_x} vs Nombre de partides",
+        title=f"{opcion_y} vs Nombre de partides",
         labels={
-            opcion_x: opcion_x,
+            opcion_y: opcion_y,
             "num_partides": "Nombre de partides"
         },
         color="num_partides",
         color_continuous_scale="Blues"
     )
 
-    fig4.update_traces(marker=dict(size=10, opacity=0.7))
+    fig4.update_traces(marker=dict(size=10, opacity=0.8))
     fig4.update_layout(
-        xaxis_title=opcion_x,
-        yaxis_title="Nombre de partides",
+        xaxis_title="Nombre de partides",
+        yaxis_title=opcion_y,
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)"
     )
