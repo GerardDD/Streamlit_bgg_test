@@ -135,21 +135,26 @@ if archivo:
 
     st.subheader("📊 Distribució de jocs per època")
 
-    fig1 = px.bar(
+    fig1 = px.pie(
         conteo_epocas,
-        x="epoca",
-        y="cantidad",
-        text="cantidad",
-        title="Jocs per època"
+        names="epoca",
+        values="cantidad",
+        title="Distribució de jocs per època",
+        color="epoca",
+        color_discrete_sequence=px.colors.qualitative.Set3
     )
-    fig1.update_traces(textposition="outside")
+
+    fig1.update_traces(
+        textposition="inside",
+        textinfo="percent+label",
+        pull=[0.05] * len(conteo_epocas)  # pequeño efecto de separación
+    )
+
     fig1.update_layout(
-        xaxis_title="època",
-        yaxis_title="quantitat"
+        showlegend=False
     )
-   
-    
-    st.plotly_chart(fig1)
+
+    st.plotly_chart(fig1, use_container_width=True)
 
     # ============================
     # 🔵 GRÁFICO 2: Histograma de años
