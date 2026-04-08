@@ -183,13 +183,22 @@ if archivo:
 
     st.subheader("😅 Llista de la vergonya (jocs sense jugar)")
 
-    df_vergonya = df[df["num_partides"] == 0].sort_values("nom_del_joc")
+    # Checkbox para incluir/excluir expansiones
+    mostrar_expansions = st.checkbox("Mostrar expansions a la llista", value=False)
+
+    df_vergonya = df[df["num_partides"] == 0].copy()
+
+    # Filtrar expansiones si el checkbox está desmarcado
+    if not mostrar_expansions:
+        df_vergonya = df_vergonya[df_vergonya["itemtype"] != "expansion"]
+
+    df_vergonya = df_vergonya.sort_values("nom_del_joc")
 
     if df_vergonya.empty:
         st.success("🎉 No tens cap joc sense jugar! Bona feina!")
     else:
         st.warning(f"Tens {len(df_vergonya)} jocs sense estrenar...")
-        st.dataframe(df_vergonya[["nom_del_joc", "yearpublished", "pes", "version_languages"]])
+        st.dataframe(df_vergonya[["nom_del_joc", "yearpublished", "pes", "version_languages", "itemtype"]])
 
 
 
