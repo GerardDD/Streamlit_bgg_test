@@ -88,6 +88,13 @@ if archivo:
         df_filtrado = df_filtrado[df_filtrado["version_languages"].isin(idioma_sel)]
 
     st.subheader("La col·lecció")
+
+    # --- Buscador por nombre ---
+    busqueda = st.sidebar.text_input("Cerca per nom del joc:")
+
+    if busqueda:
+        df_filtrado = df_filtrado[df_filtrado["nom_del_joc"].str.contains(busqueda, case=False, na=False)]
+
     st.dataframe(df_filtrado)
 
     # ============================
