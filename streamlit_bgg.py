@@ -142,7 +142,7 @@ if archivo:
     st.subheader("🌍 Juegos por idioma")
 
     # Checkbox para incluir/excluir "Desconegut" SOLO en el gráfico
-    mostrar_desconegut = st.checkbox("Mostrar 'Desconegut' en el gráfico", value=False)
+    mostrar_desconegut = st.checkbox("Mostrar 'Desconegut' al gràfic", value=False)
 
     # Filtrado local para el gráfico
     df_idiomas_graf = df_filtrado.copy()
