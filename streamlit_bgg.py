@@ -48,6 +48,33 @@ st.markdown("""
             border-radius: 8px;
         }
 
+        /* Force black text everywhere */
+        html, body, [class*="css"] {
+            color: #000000 !important;
+        }
+
+        /* Force black text inside widgets */
+        .stTextInput input,
+        .stSelectbox div,
+        .stButton button,
+        .stCheckbox label,
+        .stRadio label,
+        .stMetric label,
+        .stMetric div {
+            color: #000000 !important;
+        }
+
+        /* Force black text inside dataframes */
+        .dataframe tbody tr td,
+        .dataframe thead tr th {
+            color: #000000 !important;
+        }
+
+        /* Force black text in Plotly charts (titles, labels, ticks) */
+        .js-plotly-plot .plotly .main-svg {
+            color: #000000 !important;
+            fill: #000000 !important;
+        }
         
     </style>
     """, unsafe_allow_html=True)
