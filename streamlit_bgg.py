@@ -51,7 +51,7 @@ if archivo:
 
     # Filtro por época
     epocas_sel = st.sidebar.multiselect(
-        "Selecciona épocas:",
+        "Selecciona epoques:",
         options=df["epocas"].dropna().unique(),
         default=df["epocas"].dropna().unique()
     )
@@ -61,7 +61,7 @@ if archivo:
     max_year = int(df["yearpublished"].max(skipna=True))
 
     year_range = st.sidebar.slider(
-        "Rango de años:",
+        "Rang d'anys:",
         min_year, max_year, (min_year, max_year)
     )
 
