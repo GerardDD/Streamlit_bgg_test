@@ -177,7 +177,9 @@ if archivo:
     )
 
     fig1.update_layout(
-        showlegend=False
+        showlegend=False,
+        plot_bgcolor="#FFF4E6",
+        paper_bgcolor="#FFF4E6"
     )
 
     st.plotly_chart(fig1, use_container_width=True)
@@ -197,7 +199,9 @@ if archivo:
 
     fig2.update_layout(
         xaxis_title="Any de publicació",
-        yaxis_title="Recompte"
+        yaxis_title="Recompte",
+        plot_bgcolor="#FFF4E6",
+        paper_bgcolor="#FFF4E6"
     )
     
     st.plotly_chart(fig2)
@@ -263,6 +267,13 @@ if archivo:
         values="cantidad",
         title="Distribución por idioma"
     )
+
+    fig3.update_layout(
+        # showlegend=False,
+        plot_bgcolor="#FFF4E6",
+        paper_bgcolor="#FFF4E6"
+    )
+    
     st.plotly_chart(fig3)
     
     # ============================
