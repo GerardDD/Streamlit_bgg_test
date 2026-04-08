@@ -32,52 +32,124 @@ else:
 # ============================
 st.set_page_config(layout="wide")
 st.markdown("""
-    <style>
-        /* Fondo general */
-        .stApp {
-            background-color: #FFF4E6; /* naranja suave pastel */
-        }
+<style>
 
-        /* Opcional: color de los paneles laterales */
-        section[data-testid="stSidebar"] {
-            background-color: #FFE8D1; /* un poco más oscuro */
-        }
+    /* ============================
+       🔵 FONDO GENERAL (modo claro)
+       ============================ */
+    .stApp {
+        background-color: #FFF4E6 !important;
+        color: #000000 !important;
+    }
 
-        /* Opcional: bordes redondeados en widgets */
-        .stButton>button, .stTextInput>div>div>input, .stSelectbox>div>div>div {
-            border-radius: 8px;
-        }
+    html, body {
+        background-color: #FFF4E6 !important;
+        color: #000000 !important;
+    }
 
-        /* Force black text everywhere */
-        html, body, [class*="css"] {
+    /* ============================
+       🔵 SIDEBAR
+       ============================ */
+    section[data-testid="stSidebar"] {
+        background-color: #FFE8D1 !important;
+        color: #000000 !important;
+    }
+
+    section[data-testid="stSidebar"] * {
+        color: #000000 !important;
+    }
+
+    /* ============================
+       🔵 BORDES REDONDEADOS
+       ============================ */
+    .stButton>button,
+    .stTextInput>div>div>input,
+    .stSelectbox>div>div>div {
+        border-radius: 8px !important;
+    }
+
+    /* ============================
+       🔵 TEXTO GLOBAL (forzar negro)
+       ============================ */
+    *, html, body, [class*="css"] {
+        color: #000000 !important;
+    }
+
+    /* ============================
+       🔵 WIDGETS
+       ============================ */
+    .stTextInput input,
+    .stSelectbox div,
+    .stNumberInput input,
+    .stCheckbox label,
+    .stRadio label,
+    .stMetric label,
+    .stMetric div {
+        color: #000000 !important;
+    }
+
+    /* ============================
+       🔵 BOTONES
+       ============================ */
+    .stButton button {
+        color: #000000 !important;
+        background-color: #FFD8A8 !important;
+        border-radius: 8px !important;
+    }
+
+    /* ============================
+       🔵 TABLAS
+       ============================ */
+    .dataframe tbody tr td,
+    .dataframe thead tr th {
+        color: #000000 !important;
+    }
+
+    /* ============================
+       🔵 PLOTLY (títulos, ejes, labels)
+       ============================ */
+    .js-plotly-plot .plotly .main-svg {
+        color: #000000 !important;
+        fill: #000000 !important;
+    }
+
+    /* ============================
+       🔵 RESPONSIVE PARA MÓVIL
+       ============================ */
+    @media (max-width: 768px) {
+
+        /* Texto más grande y negro */
+        body, html, .stApp {
+            font-size: 18px !important;
             color: #000000 !important;
         }
 
-        /* Force black text inside widgets */
+        /* Títulos */
+        h1, h2, h3, h4 {
+            color: #000000 !important;
+        }
+
+        /* Inputs más grandes */
         .stTextInput input,
-        .stSelectbox div,
-        .stButton button,
-        .stCheckbox label,
-        .stRadio label,
-        .stMetric label,
-        .stMetric div {
-            color: #000000 !important;
+        .stSelectbox div {
+            font-size: 18px !important;
         }
 
-        /* Force black text inside dataframes */
-        .dataframe tbody tr td,
-        .dataframe thead tr th {
-            color: #000000 !important;
+        /* Botones más accesibles */
+        .stButton button {
+            font-size: 18px !important;
+            padding: 12px 20px !important;
         }
 
-        /* Force black text in Plotly charts (titles, labels, ticks) */
-        .js-plotly-plot .plotly .main-svg {
-            color: #000000 !important;
-            fill: #000000 !important;
+        /* Sidebar texto más grande */
+        section[data-testid="stSidebar"] * {
+            font-size: 18px !important;
         }
-        
-    </style>
-    """, unsafe_allow_html=True)
+    }
+
+</style>
+""", unsafe_allow_html=True)
+
 
 
 
