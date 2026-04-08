@@ -8,7 +8,7 @@ import plotly.express as px
 # ============================
 # 🔵 ESTILO PERSONALIZADO
 # ============================
-
+st.set_page_config(layout="wide")
 st.markdown("""
     <style>
         /* Fondo general */
