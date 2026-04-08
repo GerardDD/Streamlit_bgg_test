@@ -5,6 +5,18 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
+def fix_plotly_colors(fig):
+    fig.update_layout(
+        font=dict(color="#000000"),
+        title_font=dict(color="#000000"),
+        legend_font=dict(color="#000000"),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)"
+    )
+    fig.update_xaxes(color="#000000", title_font=dict(color="#000000"))
+    fig.update_yaxes(color="#000000", title_font=dict(color="#000000"))
+    return fig
+
 # ============================
 # 🔵 CARGA DE DATOS (CSV por defecto + CSV manual)
 # ============================
@@ -304,8 +316,8 @@ if archivo:
         plot_bgcolor="#FFF4E6",
         paper_bgcolor="#FFF4E6"
     )
-
-    st.plotly_chart(fig1, use_container_width=True)
+    fig1 = fix_plotly_colors(fig1)
+    st.plotly_chart(fig1)
 
     # ============================
     # 🔵 GRÁFICO 2: Histograma de años
@@ -326,6 +338,7 @@ if archivo:
         plot_bgcolor="#FFF4E6",
         paper_bgcolor="#FFF4E6"
     )
+    fig2 = fix_plotly_colors(fig2)
     
     st.plotly_chart(fig2)
     
@@ -362,7 +375,7 @@ if archivo:
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)"
     )
-
+    fig5 = fix_plotly_colors(fig5)
     st.plotly_chart(fig5, use_container_width=True)
 
 
@@ -396,7 +409,7 @@ if archivo:
         plot_bgcolor="#FFF4E6",
         paper_bgcolor="#FFF4E6"
     )
-    
+    fig3 = fix_plotly_colors(fig3)
     st.plotly_chart(fig3)
     
     # ============================
@@ -435,7 +448,7 @@ if archivo:
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)"
     )
-
+    fig4 = fix_plotly_colors(fig4)
     st.plotly_chart(fig4, use_container_width=True)
 
     # ============================
