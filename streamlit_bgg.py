@@ -22,8 +22,8 @@ if archivo:
     df["version_languages"] = df["version_languages"].fillna("Desconegut")
     df["version_languages"] = df["version_languages"].replace("", "Desconegut")
 
-    st.subheader("Contenido del archivo")
-    st.dataframe(df)
+    #st.subheader("Contenido del archivo")
+    #st.dataframe(df)
 
     # --- Convertir año a numérico ---
     df["yearpublished"] = pd.to_numeric(df["yearpublished"], errors="coerce")
@@ -32,7 +32,7 @@ if archivo:
     df["epocas"] = pd.cut(
         df["yearpublished"],
         bins=[-3000, 1900, 2020, 2050],
-        labels=["Antigüedad", "Moderno", "PostPandemia"]
+        labels=["Antiguitat", "Moderna", "Post-Pandèmia"]
     )
 
     # ============================
@@ -79,7 +79,7 @@ if archivo:
     if idioma_sel:
         df_filtrado = df_filtrado[df_filtrado["version_languages"].isin(idioma_sel)]
 
-    st.subheader("Datos filtrados")
+    st.subheader("La col·lecció")
     st.dataframe(df_filtrado)
 
     # ============================
