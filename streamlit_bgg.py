@@ -5,6 +5,31 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
+# ============================
+# 🔵 ESTILO PERSONALIZADO
+# ============================
+
+st.markdown("""
+    <style>
+        /* Fondo general */
+        .stApp {
+            background-color: #FFF4E6; /* naranja suave pastel */
+        }
+
+        /* Opcional: color de los paneles laterales */
+        section[data-testid="stSidebar"] {
+            background-color: #FFE8D1; /* un poco más oscuro */
+        }
+
+        /* Opcional: bordes redondeados en widgets */
+        .stButton>button, .stTextInput>div>div>input, .stSelectbox>div>div>div {
+            border-radius: 8px;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+
+
 st.title("📚 Ludoteca de dumito")
 
 # --- Carga de CSV ---
