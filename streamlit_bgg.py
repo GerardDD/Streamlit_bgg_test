@@ -277,7 +277,7 @@ if archivo:
         df_filtrado["any_publicació"].between(year_range[0], year_range[1], inclusive="both")
     ]
 
-    if idioma_sel:
+    if idioma_sel and metode != "📁 Pujar un CSV manualment" :
         df_filtrado = df_filtrado[df_filtrado["version_languages"].isin(idioma_sel)]
 
 
