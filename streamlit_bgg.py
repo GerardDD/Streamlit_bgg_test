@@ -31,6 +31,11 @@ archivo_subido = st.sidebar.file_uploader(
 if archivo_subido is not None:
     # Leer CSV subido por el usuario
     df = pd.read_csv(archivo_subido)
+    df.columns = (
+        df.columns
+        .str.replace('\ufeff', '', regex=False)
+        .str.strip()
+    )
     st.sidebar.success("CSV carregat correctament!")
 else:
     # CSV por defecto
