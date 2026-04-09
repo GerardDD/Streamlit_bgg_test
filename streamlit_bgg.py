@@ -202,7 +202,10 @@ if archivo:
     try:
         df["version_languages"] = df["version_languages"].fillna("Desconegut")
         df["version_languages"] = df["version_languages"].replace("", "Desconegut")
+        pass
     except:
+        pass
+    finally:
         pass
 
     # 🔥 Renombrar columnas
