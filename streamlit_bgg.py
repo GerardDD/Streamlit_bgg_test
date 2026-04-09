@@ -36,6 +36,10 @@ if archivo_subido is not None:
         .str.replace('\ufeff', '', regex=False)
         .str.strip()
     )
+    df = pd.read_csv(archivo_subido)
+    st.write("🔍 Columnes detectades:", df.columns.tolist())
+    st.write("🔍 Nombre de columnes:", len(df.columns))
+    st.dataframe(df.head())
     st.sidebar.success("CSV carregat correctament!")
 else:
     # CSV por defecto
