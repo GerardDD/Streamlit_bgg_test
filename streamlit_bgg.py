@@ -1,6 +1,4 @@
 import os
-
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -17,28 +15,48 @@ def fix_plotly_colors(fig):
     fig.update_yaxes(color="#000000", title_font=dict(color="#000000"))
     return fig
 
-# ============================
-# 🔵 CARGA DE DATOS (CSV por defecto + CSV manual)
-# ============================
+# ============================================================
+# 🔵 PRIMER PAS: ELECCIÓ DE MÈTODE DE CÀRREGA DEL CSV
+# ============================================================
 
 st.sidebar.subheader("📂 Dades d'entrada")
 
-archivo_subido = st.sidebar.file_uploader(
-    "Puja un CSV personalitzat (opcional):",
-    type=["csv"]
+metode = st.sidebar.radio(
+    "Com vols carregar les dades?",
+    ("📁 Pujar un CSV manualment", "💾 Utilitzar el CSV per defecte")
 )
 
-if archivo_subido is not None:
-    # Leer CSV subido por el usuario
-    df = pd.read_csv(archivo_subido)
-    df.columns = df.columns.str.replace('\ufeff', '', regex=False)
-    df.columns = df.columns.str.strip()
-    st.sidebar.success("CSV carregat correctament!")
-else:
-    # CSV por defecto
-    df = pd.read_csv("collection.csv")
-    st.sidebar.info("S'està utilitzant el CSV per defecte.")
+df = None
 
+if metode == "📁 Pujar un CSV manualment":
+    fitxer = st.sidebar.file_uploader("Puja el teu CSV:", type=["csv"])
+    if fitxer is not None:
+        df = pd.read_csv(fitxer, sep=",", engine="python")
+        st.sidebar.success("CSV carregat correctament!")
+else:
+    default_path = "collection.csv"
+    if os.path.exists(default_path):
+        df = pd.read_csv(default_path, sep=",", engine="python")
+        st.sidebar.info(f"S'està utilitzant el CSV per defecte: {default_path}")
+    else:
+        st.sidebar.error(f"No s'ha trobat el fitxer per defecte: {default_path}")
+
+# Si encara no tenim dades, aturem l'app
+if df is None:
+    st.warning("Carrega un CSV per continuar.")
+    st.stop()
+
+# ============================================================
+# 🔵 NETEJA DE COLUMNES (BOM, espais, CRLF)
+# ============================================================
+
+df.columns = (
+    df.columns
+    .str.replace('\ufeff', '', regex=False)
+    .str.replace('\r', '', regex=False)
+    .str.replace('\n', '', regex=False)
+    .str.strip()
+)
 
 
 # ============================
