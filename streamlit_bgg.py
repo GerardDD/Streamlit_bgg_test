@@ -256,6 +256,7 @@ if archivo:
     try:
         idiomas = df["version_languages"].dropna().unique()
     except:
+        idiomas = ['Desconegut']
         pass
     finally:
         pass
