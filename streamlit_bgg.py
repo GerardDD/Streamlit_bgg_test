@@ -415,34 +415,34 @@ if archivo:
     # ============================
     # 🔵 GRÁFICO 3: Juegos por idioma
     # ============================
+    if metode != "📁 Pujar un CSV manualment":
+        st.subheader("🌍 Jocs per idioma")
 
-    st.subheader("🌍 Jocs per idioma")
+        # Checkbox para incluir/excluir "Desconegut" SOLO en el gráfico
+        mostrar_desconegut = st.checkbox("Mostrar 'Desconegut' al gràfic", value=False)
 
-    # Checkbox para incluir/excluir "Desconegut" SOLO en el gráfico
-    mostrar_desconegut = st.checkbox("Mostrar 'Desconegut' al gràfic", value=False)
+        # Filtrado local para el gráfico
+        df_idiomas_graf = df_filtrado.copy()
+        if not mostrar_desconegut:
+            df_idiomas_graf = df_idiomas_graf[df_idiomas_graf["version_languages"] != "Desconegut"]
 
-    # Filtrado local para el gráfico
-    df_idiomas_graf = df_filtrado.copy()
-    if not mostrar_desconegut:
-        df_idiomas_graf = df_idiomas_graf[df_idiomas_graf["version_languages"] != "Desconegut"]
+        conteo_idiomas = df_idiomas_graf["version_languages"].value_counts().reset_index()
+        conteo_idiomas.columns = ["idioma", "cantidad"]
 
-    conteo_idiomas = df_idiomas_graf["version_languages"].value_counts().reset_index()
-    conteo_idiomas.columns = ["idioma", "cantidad"]
+        fig3 = px.pie(
+            conteo_idiomas,
+            names="idioma",
+            values="cantidad",
+            title="Distribución por idioma"
+        )
 
-    fig3 = px.pie(
-        conteo_idiomas,
-        names="idioma",
-        values="cantidad",
-        title="Distribución por idioma"
-    )
-
-    fig3.update_layout(
-        # showlegend=False,
-        plot_bgcolor="#FFF4E6",
-        paper_bgcolor="#FFF4E6"
-    )
-    fig3 = fix_plotly_colors(fig3)
-    st.plotly_chart(fig3)
+        fig3.update_layout(
+            # showlegend=False,
+            plot_bgcolor="#FFF4E6",
+            paper_bgcolor="#FFF4E6"
+        )
+        fig3 = fix_plotly_colors(fig3)
+        st.plotly_chart(fig3)
     
     # ============================
     # 🔵 GRÁFICO 4: Scatter interactiu
