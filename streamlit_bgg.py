@@ -23,7 +23,7 @@ st.sidebar.subheader("📂 Dades d'entrada")
 
 metode = st.sidebar.radio(
     "Com vols carregar les dades?",
-    ("📁 Pujar un CSV manualment", "💾 Utilitzar el CSV per defecte")
+    ("📁 Pujar un CSV manualment", "💾 Veure la ludo de dumito per defecte")
 )
 
 df = None
