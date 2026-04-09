@@ -253,7 +253,12 @@ if archivo:
     )
 
     # Filtro por idioma
-    idiomas = df["version_languages"].dropna().unique()
+    try:
+        idiomas = df["version_languages"].dropna().unique()
+    except:
+        pass
+    finally:
+        pass
     idioma_sel = st.sidebar.multiselect(
         "Idioma:",
         options=idiomas,
