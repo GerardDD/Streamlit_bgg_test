@@ -502,6 +502,9 @@ if archivo:
 
     if df_vergonya.empty:
         st.success("🎉 No tens cap joc sense jugar! Bona feina!")
+    elif metode == "📁 Pujar un CSV manualment":
+        st.warning(f"Tens {len(df_vergonya)} jocs sense estrenar...")
+        st.dataframe(df_vergonya[["nom_del_joc", "any_publicació", "pes", "itemtype"]])
     else:
         st.warning(f"Tens {len(df_vergonya)} jocs sense estrenar...")
         st.dataframe(df_vergonya[["nom_del_joc", "any_publicació", "pes", "version_languages", "itemtype"]])
