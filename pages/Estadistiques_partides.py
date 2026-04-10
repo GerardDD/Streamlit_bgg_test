@@ -95,7 +95,7 @@ with col1:
     st.metric("🎲 Total de partides registrades", len(df_filtered))
 
 # Detect game column automatically
-game_col = [c for c in df_filtered.columns if "game" in c.lower() or "object" in c.lower()]
+game_col = [c for c in df_filtered.columns if "Name" in c or "object" in c.lower()]
 game_col = game_col[0] if game_col else None
 
 with col2:
@@ -131,12 +131,12 @@ st.subheader("🏆 Jocs més jugats")
 
 if game_col:
     top_games = df_filtered[game_col].value_counts().head(10).reset_index()
-    top_games.columns = ["Game", "count"]
+    top_games.columns = ["Name", "count"]
 
     fig_games = px.bar(
         top_games,
         x="count",
-        y="Game",
+        y="Name",
         orientation="h",
         title="Top 10 jocs més jugats",
         text="count"
