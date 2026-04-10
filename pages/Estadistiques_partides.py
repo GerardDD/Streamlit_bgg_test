@@ -167,3 +167,49 @@ fig_players = px.bar(
 )
 fig_players.update_layout(yaxis=dict(autorange="reversed"))
 st.plotly_chart(fig_players, use_container_width=True)
+
+# ============================
+# 🔵 HEATMAP: Jugadors que juguen junts
+# ============================
+
+st.subheader("🤝 Jugadors que juguen junts (Heatmap)")
+
+# Expand players into rows
+pairs_df = (
+    df_filtered["Players"]
+    .str.split(",")
+    .apply(lambda lst: [p.strip() for p in lst if p.strip()])
+)
+
+# Create all unique pairs per game
+from itertools import combinations
+pair_counts = {}
+
+for players in pairs_df:
+    if len(players) > 1:
+        for p1, p2 in combinations(sorted(players), 2):
+            pair_counts[(p1, p2)] = pair_counts.get((p1, p2), 0) + 1
+
+# Convert to DataFrame
+if pair_counts:
+    heatmap_df = pd.DataFrame(
+        [(p1, p2, count) for (p1, p2), count in pair_counts.items()],
+        columns=["Player1", "Player2", "Count"]
+    )
+
+    # Pivot to matrix
+    heatmap_matrix = heatmap_df.pivot(index="Player1", columns="Player2", values="Count").fillna(0)
+
+    # Plot heatmap
+    fig_heatmap = px.imshow(
+        heatmap_matrix,
+        text_auto=True,
+        color_continuous_scale="Blues",
+        title="Freqüència de jugadors que coincideixen en partides"
+    )
+
+    st.plotly_chart(fig_heatmap, use_container_width=True)
+
+else:
+    st.info("No hi ha prou dades per generar el heatmap.")
+
