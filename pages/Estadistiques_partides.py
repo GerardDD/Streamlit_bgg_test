@@ -14,6 +14,7 @@ df_2 = pd.read_csv("pages/playsMrbrussels.csv", sep=",", engine="python")
 df_2["Players"] = (
     df_2["Players"]
     .str.replace(r"\(\d+\)", "", regex=True)
+    .str.replace(r"\(-\d+\)", "", regex=True)
     .str.replace(r"\s+", " ", regex=True)
     .str.strip()
 )
