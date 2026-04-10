@@ -22,6 +22,63 @@ df_2["Players"] = (
 if "Date" in df_2.columns:
     df_2["Date"] = pd.to_datetime(df_2["Date"], errors="coerce")
 
+st.sidebar.header("Filtres")
+
+# --- Filtro por fecha ---
+if "Date" in df_2.columns:
+    df_2["Date"] = pd.to_datetime(df_2["Date"], errors="coerce")
+    min_date = df_2["Date"].min()
+    max_date = df_2["Date"].max()
+
+    date_range = st.sidebar.date_input(
+        "Rang de dates:",
+        value=(min_date, max_date),
+        min_value=min_date,
+        max_value=max_date
+    )
+else:
+    date_range = None
+
+# --- Filtro por jugadores ---
+if "Players" in df_2.columns:
+    all_players = (
+        df_2["Players"]
+        .str.split(",")
+        .explode()
+        .str.strip()
+        .dropna()
+        .unique()
+    )
+
+    players_sel = st.sidebar.multiselect(
+        "Jugadors:",
+        options=sorted(all_players),
+        default=sorted(all_players)
+    )
+else:
+    players_sel = None
+
+# --- Aplicar filtros ---
+df_filtered = df_2.copy()
+
+# Filtrar por fecha
+if date_range and len(date_range) == 2:
+    start, end = date_range
+    df_filtered = df_filtered[
+        (df_filtered["Date"] >= pd.to_datetime(start)) &
+        (df_filtered["Date"] <= pd.to_datetime(end))
+    ]
+
+# Filtrar por jugadores
+if players_sel:
+    df_filtered = df_filtered[
+        df_filtered["Players"].apply(
+            lambda x: any(p.strip() in players_sel for p in str(x).split(","))
+        )
+    ]
+
+
+
 st.header("📌 KPIs principals")
 
 col1, col2, col3 = st.columns(3)
