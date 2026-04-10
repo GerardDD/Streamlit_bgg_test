@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -8,7 +7,7 @@ st.set_page_config(layout="wide")
 st.title("🎮 Estadístiques de Partides")
 
 # Load df_2 (plays)
-df_2 = pd.read_csv("pages/playsMrbrussels.csv", sep=",", engine="python")
+df_2 = pd.read_csv("playsMrbrussels.csv", sep=",", engine="python")
 
 # Clean Players column (remove numbers and brackets)
 df_2["Players"] = (
@@ -23,11 +22,14 @@ df_2["Players"] = (
 if "Date" in df_2.columns:
     df_2["Date"] = pd.to_datetime(df_2["Date"], errors="coerce")
 
+# ============================
+# 🔵 SIDEBAR FILTERS
+# ============================
+
 st.sidebar.header("Filtres")
 
-# --- Filtro por fecha ---
+# --- Date filter ---
 if "Date" in df_2.columns:
-    df_2["Date"] = pd.to_datetime(df_2["Date"], errors="coerce")
     min_date = df_2["Date"].min()
     max_date = df_2["Date"].max()
 
@@ -40,7 +42,7 @@ if "Date" in df_2.columns:
 else:
     date_range = None
 
-# --- Filtro por jugadores ---
+# --- Players filter ---
 if "Players" in df_2.columns:
     all_players = (
         df_2["Players"]
@@ -59,10 +61,13 @@ if "Players" in df_2.columns:
 else:
     players_sel = None
 
-# --- Aplicar filtros ---
+# ============================
+# 🔵 APPLY FILTERS
+# ============================
+
 df_filtered = df_2.copy()
 
-# Filtrar por fecha
+# Filter by date
 if date_range and len(date_range) == 2:
     start, end = date_range
     df_filtered = df_filtered[
@@ -70,7 +75,7 @@ if date_range and len(date_range) == 2:
         (df_filtered["Date"] <= pd.to_datetime(end))
     ]
 
-# Filtrar por jugadores
+# Filter by players
 if players_sel:
     df_filtered = df_filtered[
         df_filtered["Players"].apply(
@@ -78,49 +83,60 @@ if players_sel:
         )
     ]
 
-
+# ============================
+# 🔵 KPIs (all use df_filtered)
+# ============================
 
 st.header("📌 KPIs principals")
 
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.metric("🎲 Total de partides registrades", len(df_2))
+    st.metric("🎲 Total de partides registrades", len(df_filtered))
+
+# Detect game column automatically
+game_col = [c for c in df_filtered.columns if "game" in c.lower() or "object" in c.lower()]
+game_col = game_col[0] if game_col else None
 
 with col2:
-    if "Name" in df_2.columns:
-        st.metric("🧩 Jocs diferents jugats", df_2["Name"].nunique())
+    if game_col:
+        st.metric("🧩 Jocs diferents jugats", df_filtered[game_col].nunique())
     else:
         st.metric("🧩 Jocs diferents jugats", "—")
 
 with col3:
-    if "Players" in df_2.columns:
-        total_players = df_2["Players"].str.split(",").explode().str.strip().nunique()
-        st.metric("👥 Jugadors diferents", total_players)
-    else:
-        st.metric("👥 Jugadors diferents", "—")
+    total_players = (
+        df_filtered["Players"]
+        .str.split(",")
+        .explode()
+        .str.strip()
+        .nunique()
+    )
+    st.metric("👥 Jugadors diferents", total_players)
+
+# ============================
+# 🔵 VISUALITZACIONS (all use df_filtered)
+# ============================
 
 st.subheader("📅 Evolució de partides en el temps")
 
-if "Date" in df_2.columns:
-    df_time = df_2.groupby(df_2["Date"].dt.to_period("M")).size().reset_index(name="count")
+if "Date" in df_filtered.columns:
+    df_time = df_filtered.groupby(df_filtered["Date"].dt.to_period("M")).size().reset_index(name="count")
     df_time["Date"] = df_time["Date"].dt.to_timestamp()
 
     fig_time = px.line(df_time, x="Date", y="count", title="Partides per mes")
     st.plotly_chart(fig_time, use_container_width=True)
-else:
-    st.info("No hi ha columna 'Date' al CSV.")
 
 st.subheader("🏆 Jocs més jugats")
 
-if "Name" in df_2.columns:
-    top_games = df_2["Name"].value_counts().head(10).reset_index()
-    top_games.columns = ["Name", "count"]
+if game_col:
+    top_games = df_filtered[game_col].value_counts().head(10).reset_index()
+    top_games.columns = ["Game", "count"]
 
     fig_games = px.bar(
         top_games,
         x="count",
-        y="Name",
+        y="Game",
         orientation="h",
         title="Top 10 jocs més jugats",
         text="count"
@@ -130,25 +146,24 @@ if "Name" in df_2.columns:
 
 st.subheader("👤 Jugadors més actius")
 
-if "Players" in df_2.columns:
-    players = (
-        df_2["Players"]
-        .str.split(",")
-        .explode()
-        .str.strip()
-        .value_counts()
-        .head(10)
-        .reset_index()
-    )
-    players.columns = ["Player", "count"]
+players = (
+    df_filtered["Players"]
+    .str.split(",")
+    .explode()
+    .str.strip()
+    .value_counts()
+    .head(10)
+    .reset_index()
+)
+players.columns = ["Player", "count"]
 
-    fig_players = px.bar(
-        players,
-        x="count",
-        y="Player",
-        orientation="h",
-        title="Top 10 jugadors més actius",
-        text="count"
-    )
-    fig_players.update_layout(yaxis=dict(autorange="reversed"))
-    st.plotly_chart(fig_players, use_container_width=True)
+fig_players = px.bar(
+    players,
+    x="count",
+    y="Player",
+    orientation="h",
+    title="Top 10 jugadors més actius",
+    text="count"
+)
+fig_players.update_layout(yaxis=dict(autorange="reversed"))
+st.plotly_chart(fig_players, use_container_width=True)
