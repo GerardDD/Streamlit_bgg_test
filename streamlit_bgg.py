@@ -289,7 +289,7 @@ if archivo:
 
     st.subheader("📌 Indicadors principals del filtre actual")
 
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
 
     with col1:
         st.metric(
@@ -315,6 +315,20 @@ if archivo:
             value=int(df_filtrado["num_partides"].sum()) if not df_filtrado.empty else "—"
         )
 
+    # 👉 NUEVO KPI: Año con más juegos
+    with col5:
+        if not df_filtrado.empty:
+            any_mes_jocs = (
+                df_filtrado["any_publicació"]
+                .value_counts()
+                .idxmax()
+            )
+            st.metric(
+                label="📅 Any amb més jocs",
+                value=int(any_mes_jocs)
+            )
+        else:
+            st.metric(label="📅 Any amb més jocs", value="—")
 
     
     st.dataframe(df_filtrado)
