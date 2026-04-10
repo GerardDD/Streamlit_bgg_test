@@ -169,17 +169,20 @@ fig_players.update_layout(yaxis=dict(autorange="reversed"))
 st.plotly_chart(fig_players, use_container_width=True)
 
 # ============================
-# 🔵 HEATMAP: Jugadors que juguen junts
+# 🔵 HEATMAP: Jugadors que juguen junts (només jugadors filtrats)
 # ============================
 
 st.subheader("🤝 Jugadors que juguen junts (Heatmap)")
 
-# Expand players into rows
+# Expand players into lists
 pairs_df = (
     df_filtered["Players"]
     .str.split(",")
     .apply(lambda lst: [p.strip() for p in lst if p.strip()])
 )
+
+# ⭐ NEW: keep only players in players_sel
+pairs_df = pairs_df.apply(lambda lst: [p for p in lst if p in players_sel])
 
 # Create all unique pairs per game
 from itertools import combinations
@@ -205,11 +208,12 @@ if pair_counts:
         heatmap_matrix,
         text_auto=True,
         color_continuous_scale="Blues",
-        title="Freqüència de jugadors que coincideixen en partides"
+        title="Freqüència de jugadors que coincideixen en partides (filtrat)"
     )
 
     st.plotly_chart(fig_heatmap, use_container_width=True)
 
 else:
-    st.info("No hi ha prou dades per generar el heatmap.")
+    st.info("No hi ha prou dades per generar el heatmap amb els jugadors filtrats.")
+
 
