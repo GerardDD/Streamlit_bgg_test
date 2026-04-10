@@ -35,8 +35,10 @@ if metode == "📁 Pujar un CSV manualment":
         st.sidebar.success("CSV carregat correctament!")
 else:
     default_path = "collection.csv"
-    if os.path.exists(default_path):
+    default_path_2 = "playsMrbrussels.csv"
+    if os.path.exists(default_path) and os.path.exists(default_path_2):
         df = pd.read_csv(default_path, sep=",", engine="python")
+        df_2 = pd.read_csv(default_path_2, sep=",", engine="python")
         st.sidebar.info(f"S'està utilitzant el CSV per defecte: {default_path}")
     else:
         st.sidebar.error(f"No s'ha trobat el fitxer per defecte: {default_path}")
