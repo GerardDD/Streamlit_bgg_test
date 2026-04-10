@@ -7,7 +7,7 @@ st.set_page_config(layout="wide")
 st.title("🎮 Estadístiques de Partides")
 
 # Load df_2 (plays)
-df_2 = pd.read_csv("playsMrbrussels.csv", sep=",", engine="python")
+df_2 = pd.read_csv("pages/playsMrbrussels.csv", sep=",", engine="python")
 
 # Clean Players column (remove numbers and brackets)
 df_2["Players"] = (
