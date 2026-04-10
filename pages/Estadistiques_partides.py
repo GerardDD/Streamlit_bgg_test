@@ -174,6 +174,8 @@ st.plotly_chart(fig_players, use_container_width=True)
 
 st.subheader("🤝 Jugadors que juguen junts (Heatmap)")
 
+from itertools import combinations
+
 # Expand players into lists
 pairs_df = (
     df_filtered["Players"]
@@ -181,11 +183,9 @@ pairs_df = (
     .apply(lambda lst: [p.strip() for p in lst if p.strip()])
 )
 
-# ⭐ NEW: keep only players in players_sel
+# Keep only filtered players
 pairs_df = pairs_df.apply(lambda lst: [p for p in lst if p in players_sel])
 
-# Create all unique pairs per game
-from itertools import combinations
 pair_counts = {}
 
 for players in pairs_df:
@@ -193,26 +193,30 @@ for players in pairs_df:
         for p1, p2 in combinations(sorted(players), 2):
             pair_counts[(p1, p2)] = pair_counts.get((p1, p2), 0) + 1
 
-# Convert to DataFrame
-if pair_counts:
-    heatmap_df = pd.DataFrame(
-        [(p1, p2, count) for (p1, p2), count in pair_counts.items()],
-        columns=["Player1", "Player2", "Count"]
-    )
+# Build symmetric matrix
+all_players = sorted(players_sel)
 
-    # Pivot to matrix
-    heatmap_matrix = heatmap_df.pivot(index="Player1", columns="Player2", values="Count").fillna(0)
+# Initialize matrix
+matrix = pd.DataFrame(0, index=all_players, columns=all_players)
 
-    # Plot heatmap
+# Fill matrix symmetrically
+for (p1, p2), count in pair_counts.items():
+    matrix.loc[p1, p2] = count
+    matrix.loc[p2, p1] = count
+
+# Optional: diagonal = number of games each player appears in
+for p in all_players:
+    matrix.loc[p, p] = sum(p in lst for lst in pairs_df)
+
+# Plot heatmap
+if matrix.values.sum() > 0:
     fig_heatmap = px.imshow(
-        heatmap_matrix,
+        matrix,
         text_auto=True,
         color_continuous_scale="Blues",
         title="Freqüència de jugadors que coincideixen en partides (filtrat)"
     )
-
     st.plotly_chart(fig_heatmap, use_container_width=True)
-
 else:
     st.info("No hi ha prou dades per generar el heatmap amb els jugadors filtrats.")
 
