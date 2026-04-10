@@ -30,8 +30,8 @@ with col1:
     st.metric("🎲 Total de partides registrades", len(df_2))
 
 with col2:
-    if "Game" in df_2.columns:
-        st.metric("🧩 Jocs diferents jugats", df_2["Game"].nunique())
+    if "Name" in df_2.columns:
+        st.metric("🧩 Jocs diferents jugats", df_2["Name"].nunique())
     else:
         st.metric("🧩 Jocs diferents jugats", "—")
 
@@ -55,14 +55,14 @@ else:
 
 st.subheader("🏆 Jocs més jugats")
 
-if "Game" in df_2.columns:
-    top_games = df_2["Game"].value_counts().head(10).reset_index()
-    top_games.columns = ["Game", "count"]
+if "Name" in df_2.columns:
+    top_games = df_2["Name"].value_counts().head(10).reset_index()
+    top_games.columns = ["Name", "count"]
 
     fig_games = px.bar(
         top_games,
         x="count",
-        y="Game",
+        y="Name",
         orientation="h",
         title="Top 10 jocs més jugats",
         text="count"
