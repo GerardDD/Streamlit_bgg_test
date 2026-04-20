@@ -33,12 +33,11 @@ st.header("🧩 Preferències del jugador")
 
 pes_pref = st.slider("Pes preferit (complexitat):", 1.0, 5.0, 2.5, 0.1)
 nota_pref = st.slider("Nota mínima BGG:", 1.0, 10.0, 6.5, 0.1)
-any_range = st.slider(
-    "Rang d'anys de publicació:",
-    int(df["any_publicació"].min()),
-    int(df["any_publicació"].max()),
-    (2000, 2025)
+num_jugadors = st.slider(
+    "Nombre de jugadors preferit:",
+    1, 10, 3
 )
+
 
 # ============================================================
 # 2️⃣ USER RATINGS FOR SAMPLE GAMES
@@ -82,7 +81,9 @@ user_profile = np.average(
 pref_vector = scaler.transform(pd.DataFrame([{
     "pes": pes_pref,
     "nota_bgg": nota_pref,
-    "any_publicació": np.mean(any_range)
+    "minplayers": num_jugadors,
+    "maxplayers": num_jugadors
+
 }]))
 
 # Combine both
@@ -99,7 +100,8 @@ df["similarity"] = similarities
 # Filter by preferences
 df_filtered = df[
     (df["nota_bgg"] >= nota_pref) &
-    (df["any_publicació"].between(any_range[0], any_range[1]))
+    (df["minplayers"] <= num_jugadors) &
+    (df["maxplayers"] >= num_jugadors)
 ]
 
 # Sort by similarity
