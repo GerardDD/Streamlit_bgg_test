@@ -6,6 +6,10 @@ st.set_page_config(layout="wide")
 
 st.title("🎮 Estadístiques de Partides")
 
+# Load bgg csv
+df = pd.read_csv("pages/collection.csv", sep=",", engine="python")
+
+
 # Load df_2 (plays)
 df_2 = pd.read_csv("pages/playsMrbrussels.csv", sep=",", engine="python")
 
@@ -219,5 +223,82 @@ if matrix.values.sum() > 0:
     st.plotly_chart(fig_heatmap, use_container_width=True)
 else:
     st.info("No hi ha prou dades per generar el heatmap amb els jugadors filtrats.")
+
+# RECOMMENDER?
+
+# Detect game column in df_2
+game_col = [c for c in df_2.columns if "Name" in c or "object" in c.lower()]
+game_col = game_col[0] if game_col else None
+
+# Normalize names for merging
+df_2["game_clean"] = df_2[game_col].str.strip().str.lower()
+df["game_clean"] = df["nom_del_joc"].str.strip().str.lower()
+
+# Merge plays with metadata
+df_merged = df_2.merge(df, on="game_clean", how="left")
+
+st.header("🎯 Recomanador de jocs per jugador")
+
+# Extract list of players
+all_players = (
+    df_merged["Players"]
+    .str.split(",")
+    .explode()
+    .str.strip()
+    .dropna()
+    .unique()
+)
+
+player_sel = st.selectbox("Selecciona un jugador:", sorted(all_players))
+
+# Games played by this player
+games_player = (
+    df_merged[df_merged["Players"].str.contains(player_sel, regex=False)]
+    ["nom_del_joc"]
+    .dropna()
+    .unique()
+)
+
+st.write(f"### 🎲 Jocs jugats per {player_sel}:")
+st.write(", ".join(games_player) if len(games_player) else "Cap joc registrat")
+
+# Prepare features for clustering
+features = df[["pes", "nota_bgg", "any_publicació"]].copy()
+features = features.fillna(features.mean())
+
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+
+scaler = StandardScaler()
+X = scaler.fit_transform(features)
+
+kmeans = KMeans(n_clusters=5, random_state=42)
+df["cluster"] = kmeans.fit_predict(X)
+
+# Identify preferred clusters
+clusters_preferits = (
+    df[df["nom_del_joc"].isin(games_player)]["cluster"]
+    .value_counts()
+    .index.tolist()
+)
+
+# Recommend games from those clusters
+recomanats = df[
+    (df["cluster"].isin(clusters_preferits)) &
+    (~df["nom_del_joc"].isin(games_player))
+]
+
+st.subheader("✨ Recomanacions per tu")
+
+if recomanats.empty:
+    st.success("🎉 No hi ha recomanacions noves. Bona feina!")
+else:
+    st.dataframe(
+        recomanats[["nom_del_joc", "pes", "nota_bgg", "any_publicació", "cluster"]]
+        .sort_values("nota_bgg", ascending=False)
+        .head(10)
+    )
+
+
 
 
