@@ -35,8 +35,8 @@ df = df.dropna(subset=required_cols)
 
 st.header("🧩 Preferències del jugador")
 
-pes_pref = st.slider("Pes preferit (complexitat):", 1.0, 5.0, 2.5, 0.1)
-nota_pref = st.slider("Nota mínima BGG:", 1.0, 10.0, 6.5, 0.1)
+pes_pref = st.slider("Pes preferit (complexitat):", 0.0, 5.0, 2.5, 0.1)
+nota_pref = st.slider("Nota mínima BGG:", 0.0, 10.0, 6.5, 0.1)
 
 num_jugadors = st.slider(
     "Nombre de jugadors preferit:",
