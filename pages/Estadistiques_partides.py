@@ -226,79 +226,66 @@ else:
 
 # RECOMMENDER?
 
-# Detect game column in df_2
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+
+st.header("🎯 Recomanador de jocs basat en jugadors similars")
+
+# Detect game column
 game_col = [c for c in df_2.columns if "Name" in c or "object" in c.lower()]
 game_col = game_col[0] if game_col else None
 
-# Normalize names for merging
-df_2["game_clean"] = df_2[game_col].str.strip().str.lower()
-df["game_clean"] = df["nom_del_joc"].str.strip().str.lower()
-
-# Merge plays with metadata
-df_merged = df_2.merge(df, on="game_clean", how="left")
-
-st.header("🎯 Recomanador de jocs per jugador")
-
-# Extract list of players
-all_players = (
-    df_merged["Players"]
-    .str.split(",")
-    .explode()
-    .str.strip()
-    .dropna()
-    .unique()
-)
-
-player_sel = st.selectbox("Selecciona un jugador:", sorted(all_players))
-
-# Games played by this player
-games_player = (
-    df_merged[df_merged["Players"].str.contains(player_sel, regex=False)]
-    ["nom_del_joc"]
-    .dropna()
-    .unique()
-)
-
-st.write(f"### 🎲 Jocs jugats per {player_sel}:")
-st.write(", ".join(games_player) if len(games_player) else "Cap joc registrat")
-
-# Prepare features for clustering
-features = df[["pes", "nota_bgg", "any_publicació"]].copy()
-features = features.fillna(features.mean())
-
-from sklearn.preprocessing import StandardScaler
-from sklearn.cluster import KMeans
-
-scaler = StandardScaler()
-X = scaler.fit_transform(features)
-
-kmeans = KMeans(n_clusters=5, random_state=42)
-df["cluster"] = kmeans.fit_predict(X)
-
-# Identify preferred clusters
-clusters_preferits = (
-    df[df["nom_del_joc"].isin(games_player)]["cluster"]
-    .value_counts()
-    .index.tolist()
-)
-
-# Recommend games from those clusters
-recomanats = df[
-    (df["cluster"].isin(clusters_preferits)) &
-    (~df["nom_del_joc"].isin(games_player))
-]
-
-st.subheader("✨ Recomanacions per tu")
-
-if recomanats.empty:
-    st.success("🎉 No hi ha recomanacions noves. Bona feina!")
+if not game_col:
+    st.warning("No s'ha trobat cap columna de jocs al CSV.")
 else:
-    st.dataframe(
-        recomanats[["nom_del_joc", "pes", "nota_bgg", "any_publicació", "cluster"]]
-        .sort_values("nota_bgg", ascending=False)
-        .head(10)
+    # Expand players into rows
+    df_expanded = df_2.copy()
+    df_expanded["Players"] = df_expanded["Players"].str.split(",")
+    df_expanded = df_expanded.explode("Players")
+    df_expanded["Players"] = df_expanded["Players"].str.strip()
+
+    # Build user–item matrix
+    user_item = (
+        df_expanded.groupby(["Players", game_col])
+        .size()
+        .unstack(fill_value=0)
     )
 
+    # Select player
+    all_players = sorted(user_item.index)
+    player_sel = st.selectbox("Selecciona un jugador:", all_players)
+
+    # Compute cosine similarity
+    similarity = cosine_similarity(user_item)
+    similarity_df = pd.DataFrame(similarity, index=user_item.index, columns=user_item.index)
+
+    # Find similar players
+    similar_players = (
+        similarity_df[player_sel]
+        .sort_values(ascending=False)
+        .drop(player_sel)
+        .head(5)
+    )
+
+    st.write("### 👥 Jugadors més semblants:")
+    st.write(similar_players)
+
+    # Games played by selected player
+    games_player = user_item.loc[player_sel]
+    games_player = games_player[games_player > 0].index.tolist()
+
+    # Games played by similar players
+    similar_users = similar_players.index.tolist()
+    games_similar = user_item.loc[similar_users].sum().sort_values(ascending=False)
+
+    # Recommend games not played yet
+    recommendations = games_similar[~games_similar.index.isin(games_player)].head(10)
+
+    st.subheader("✨ Recomanacions de jocs")
+    if recommendations.empty:
+        st.success("🎉 No hi ha recomanacions noves!")
+    else:
+        st.write(recommendations)
 
 
 
