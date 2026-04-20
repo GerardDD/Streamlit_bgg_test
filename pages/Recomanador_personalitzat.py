@@ -51,13 +51,13 @@ st.header("⭐ Avalua alguns jocs")
 
 # Initialize sample in session_state
 if "sample_games" not in st.session_state:
-    st.session_state.sample_games = df.sample(6, random_state=None)[
+    st.session_state.sample_games = df.sample(10, random_state=None)[
         ["nom_del_joc", "pes", "nota_bgg", "minplayers", "maxplayers"]
     ]
 
 # Reshuffle button
 if st.button("🔄 Tornar a mostrar altres jocs"):
-    st.session_state.sample_games = df.sample(6, random_state=None)[
+    st.session_state.sample_games = df.sample(10, random_state=None)[
         ["nom_del_joc", "pes", "nota_bgg", "minplayers", "maxplayers"]
     ]
 
