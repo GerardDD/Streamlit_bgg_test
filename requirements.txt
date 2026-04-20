@@ -3,3 +3,4 @@ plotly.express
 plotly
 pandas
 scikit-learn
+numpy
