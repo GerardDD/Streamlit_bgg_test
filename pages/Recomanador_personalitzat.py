@@ -8,7 +8,10 @@ st.set_page_config(layout="wide")
 
 st.title("🎯 Recomanador personalitzat de jocs")
 
-# Load your main collection
+# ============================================================
+# LOAD COLLECTION DATA
+# ============================================================
+
 df = pd.read_csv("pages/collection.csv", sep=",", engine="python")
 
 # Clean columns
@@ -22,8 +25,9 @@ df = df.rename(columns={
     "yearpublished": "any_publicació"
 })
 
-# Drop games missing key info
-df = df.dropna(subset=["pes", "nota_bgg", "any_publicació"])
+# Ensure required columns exist
+required_cols = ["pes", "nota_bgg", "minplayers", "maxplayers"]
+df = df.dropna(subset=required_cols)
 
 # ============================================================
 # 1️⃣ USER PREFERENCES
@@ -33,11 +37,11 @@ st.header("🧩 Preferències del jugador")
 
 pes_pref = st.slider("Pes preferit (complexitat):", 1.0, 5.0, 2.5, 0.1)
 nota_pref = st.slider("Nota mínima BGG:", 1.0, 10.0, 6.5, 0.1)
+
 num_jugadors = st.slider(
     "Nombre de jugadors preferit:",
     1, 10, 3
 )
-
 
 # ============================================================
 # 2️⃣ USER RATINGS FOR SAMPLE GAMES
@@ -45,7 +49,7 @@ num_jugadors = st.slider(
 
 st.header("⭐ Avalua alguns jocs")
 
-sample_games = df.sample(6, random_state=42)[["nom_del_joc", "pes", "nota_bgg", "any_publicació"]]
+sample_games = df.sample(6, random_state=42)[["nom_del_joc", "pes", "nota_bgg", "minplayers", "maxplayers"]]
 
 user_ratings = {}
 
@@ -60,41 +64,43 @@ for idx, row in sample_games.iterrows():
 # 3️⃣ BUILD USER PROFILE VECTOR
 # ============================================================
 
-# Convert df to feature matrix
-features = df[["pes", "nota_bgg", "any_publicació"]].copy()
+feature_cols = ["pes", "nota_bgg", "minplayers", "maxplayers"]
+
+# Feature matrix
+features = df[feature_cols].copy()
 
 scaler = StandardScaler()
 X = scaler.fit_transform(features)
 
-# Build user profile from rated games
+# Rated games
 rated_games = df[df["nom_del_joc"].isin(user_ratings.keys())].copy()
 rated_games["user_rating"] = rated_games["nom_del_joc"].map(user_ratings)
 
-# Weighted average of features
+# Weighted average of rated games
 user_profile = np.average(
-    scaler.transform(rated_games[["pes", "nota_bgg", "any_publicació"]]),
+    scaler.transform(rated_games[feature_cols]),
     axis=0,
     weights=rated_games["user_rating"]
 )
 
-# Add explicit preferences as extra weight
-pref_vector = scaler.transform(pd.DataFrame([{
+# Explicit preferences → convert to same feature space
+pref_df = pd.DataFrame([{
     "pes": pes_pref,
     "nota_bgg": nota_pref,
     "minplayers": num_jugadors,
     "maxplayers": num_jugadors
+}])[feature_cols]
 
-}]))
+pref_vector = scaler.transform(pref_df)[0]
 
-# Combine both
-user_profile = (user_profile + pref_vector[0]) / 2
+# Combine both signals
+user_profile = (user_profile + pref_vector) / 2
 
 # ============================================================
 # 4️⃣ COMPUTE SIMILARITY AND RECOMMEND
 # ============================================================
 
 similarities = cosine_similarity([user_profile], X)[0]
-
 df["similarity"] = similarities
 
 # Filter by preferences
@@ -107,8 +113,12 @@ df_filtered = df[
 # Sort by similarity
 recommendations = df_filtered.sort_values("similarity", ascending=False).head(10)
 
+# ============================================================
+# OUTPUT
+# ============================================================
+
 st.header("🎉 Recomanacions per tu")
 
 st.dataframe(
-    recommendations[["nom_del_joc", "pes", "nota_bgg", "any_publicació", "similarity"]]
+    recommendations[["nom_del_joc", "pes", "nota_bgg", "minplayers", "maxplayers", "similarity"]]
 )
