@@ -42,6 +42,9 @@ df["comment"] = df["comment"].replace("Pseudo-wargames", "Pseudo-Wargame", regex
 
 df = df.rename(columns={"comment": "Mecànica_principal"})
 
+# One-hot encoding
+mec_cols = pd.get_dummies(df["Mecànica_principal"], prefix="mec")
+df = pd.concat([df, mec_cols], axis=1)
 
 # ============================================================
 # 1️⃣ USER PREFERENCES
