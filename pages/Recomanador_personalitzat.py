@@ -40,6 +40,9 @@ df["comment"] = df["comment"].replace("Pseudo-abstracte", "Pseudo-Abstracte", re
 df["comment"] = df["comment"].replace("Pseudo-wargame", "Pseudo-Wargame", regex=True)
 df["comment"] = df["comment"].replace("Pseudo-wargames", "Pseudo-Wargame", regex=True)
 
+df = df.rename(columns={"comment": "Mecànica_principal"})
+
+
 # ============================================================
 # 1️⃣ USER PREFERENCES
 # ============================================================
@@ -54,22 +57,24 @@ num_jugadors = st.slider(
     1, 10, 3
 )
 
+# Mecànica preferida
+mecaniques = sorted(df["Mecànica_principal"].unique())
+mecanica_pref = st.selectbox("Mecànica preferida:", mecaniques)
+
 # ============================================================
 # 2️⃣ USER RATINGS FOR SAMPLE GAMES (WITH RESHUFFLE)
 # ============================================================
 
 st.header("⭐ Avalua alguns jocs")
 
-# Initialize sample in session_state
 if "sample_games" not in st.session_state:
     st.session_state.sample_games = df.sample(10, random_state=None)[
-        ["nom_del_joc", "pes", "nota_bgg", "minplayers", "maxplayers"]
+        ["nom_del_joc", "pes", "nota_bgg", "minplayers", "maxplayers", "Mecànica_principal"]
     ]
 
-# Reshuffle button
 if st.button("🔄 Tornar a mostrar altres jocs"):
     st.session_state.sample_games = df.sample(10, random_state=None)[
-        ["nom_del_joc", "pes", "nota_bgg", "minplayers", "maxplayers"]
+        ["nom_del_joc", "pes", "nota_bgg", "minplayers", "maxplayers", "Mecànica_principal"]
     ]
 
 sample_games = st.session_state.sample_games
@@ -88,37 +93,56 @@ for idx, row in sample_games.iterrows():
 # 3️⃣ BUILD USER PROFILE VECTOR
 # ============================================================
 
-feature_cols = ["pes", "nota_bgg", "minplayers", "maxplayers"]
+numeric_cols = ["pes", "nota_bgg", "minplayers", "maxplayers"]
+feature_cols = numeric_cols + list(mec_cols.columns)
 
-# Feature matrix
-features = df[feature_cols].copy()
-
+# Scale numeric features
 scaler = StandardScaler()
-X = scaler.fit_transform(features)
+X_numeric = scaler.fit_transform(df[numeric_cols])
+
+# Full feature matrix
+X = np.hstack([X_numeric, mec_cols.values])
 
 # Rated games
 rated_games = df[df["nom_del_joc"].isin(user_ratings.keys())].copy()
 rated_games["user_rating"] = rated_games["nom_del_joc"].map(user_ratings)
 
-# Weighted average of rated games
-user_profile = np.average(
-    scaler.transform(rated_games[feature_cols]),
+# Numeric profile from ratings
+user_profile_numeric = np.average(
+    scaler.transform(rated_games[numeric_cols]),
     axis=0,
     weights=rated_games["user_rating"]
 )
 
-# Explicit preferences → convert to same feature space
+# Mecànica profile from ratings
+rated_mec_matrix = mec_cols.loc[rated_games.index].values
+user_mec_from_ratings = np.average(
+    rated_mec_matrix,
+    axis=0,
+    weights=rated_games["user_rating"]
+)
+
+# Explicit preferences → numeric
 pref_df = pd.DataFrame([{
     "pes": pes_pref,
     "nota_bgg": nota_pref,
     "minplayers": num_jugadors,
     "maxplayers": num_jugadors
-}])[feature_cols]
+}])[numeric_cols]
 
-pref_vector = scaler.transform(pref_df)[0]
+pref_numeric_vector = scaler.transform(pref_df)[0]
 
-# Combine both signals
-user_profile = (user_profile + pref_vector) / 2
+# Explicit preferences → mecànica
+user_mec_vector = np.zeros(len(mec_cols.columns))
+if f"mec_{mecanica_pref}" in mec_cols.columns:
+    idx = mec_cols.columns.get_loc(f"mec_{mecanica_pref}")
+    user_mec_vector[idx] = 1
+
+# Combine numeric + mecànica
+user_profile = np.concatenate([
+    (user_profile_numeric + pref_numeric_vector) / 2,
+    (user_mec_from_ratings + user_mec_vector) / 2
+])
 
 # ============================================================
 # 4️⃣ COMPUTE SIMILARITY AND RECOMMEND
@@ -144,5 +168,9 @@ recommendations = df_filtered.sort_values("similarity", ascending=False).head(10
 st.header("🎉 Recomanacions per tu")
 
 st.dataframe(
-    recommendations[["nom_del_joc", "pes", "nota_bgg", "minplayers", "maxplayers", "similarity"]]
+    recommendations[[
+        "nom_del_joc", "pes", "nota_bgg",
+        "minplayers", "maxplayers",
+        "Mecànica_principal", "similarity"
+    ]]
 )
