@@ -14,6 +14,11 @@ st.title("🎯 Recomanador personalitzat de jocs")
 
 df = pd.read_csv("pages/collection.csv", sep=",", engine="python")
 
+if "playingtime" not in df.columns:
+    st.error("⚠️ La columna 'playingtime' no existeix al CSV!")
+else:
+    df["playingtime"] = df["playingtime"].fillna(df["playingtime"].median())
+
 # Clean columns
 df.columns = df.columns.str.strip()
 
@@ -156,6 +161,7 @@ pref_df = pd.DataFrame([{
     "maxplayers": num_jugadors,
     "playingtime": durada_pref
 }])[numeric_cols]
+
 
 
 pref_numeric_vector = scaler.transform(pref_df)[0]
