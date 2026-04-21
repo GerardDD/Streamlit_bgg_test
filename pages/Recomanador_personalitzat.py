@@ -106,7 +106,10 @@ scaler = StandardScaler()
 X_numeric = scaler.fit_transform(df[numeric_cols])
 
 # Full feature matrix
-X = np.hstack([X_numeric, mec_cols.values])
+X = np.hstack([
+    X_numeric,
+    mec_cols.values * MECHANICS_WEIGHT
+])
 
 # Rated games
 rated_games = df[df["nom_del_joc"].isin(user_ratings.keys())].copy()
