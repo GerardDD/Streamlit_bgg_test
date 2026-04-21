@@ -28,6 +28,17 @@ df = df.rename(columns={
 # Ensure required columns exist
 required_cols = ["pes", "nota_bgg", "minplayers", "maxplayers"]
 df = df.dropna(subset=required_cols)
+df["comment"] = df["comment"].replace(r"^\s*$", "No informat", regex=True)
+df["comment"] = df["comment"].fillna("No informat")
+df["comment"] = df["comment"].replace("Selecció accions", "Selecció d'accions", regex=True)
+df["comment"] = df["comment"].replace("Car-driven", "Card-driven", regex=True)
+df["comment"] = df["comment"].replace("Col·locació daus", "Col·locació de daus", regex=True)
+df["comment"] = df["comment"].replace("Construcció motor", "Construcció de motor", regex=True)
+df["comment"] = df["comment"].replace("Draft pùblic", "Draft públic", regex=True)
+df["comment"] = df["comment"].replace("Gestió de la mà", "Gestió de mà", regex=True)
+df["comment"] = df["comment"].replace("Pseudo-abstracte", "Pseudo-Abstracte", regex=True)
+df["comment"] = df["comment"].replace("Pseudo-wargame", "Pseudo-Wargame", regex=True)
+df["comment"] = df["comment"].replace("Pseudo-wargames", "Pseudo-Wargame", regex=True)
 
 # ============================================================
 # 1️⃣ USER PREFERENCES
