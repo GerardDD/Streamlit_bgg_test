@@ -60,9 +60,17 @@ num_jugadors = st.slider(
     1, 10, 3
 )
 
+durada_pref = st.slider(
+    "Durada preferida (minuts):",
+    10, 300, 60, 5
+)
+
+
 # Mecànica preferida
 mecaniques = sorted(df["Mecànica_principal"].unique())
 mecanica_pref = st.selectbox("Mecànica preferida:", mecaniques)
+
+
 
 # ============================================================
 # 2️⃣ USER RATINGS FOR SAMPLE GAMES (WITH RESHUFFLE)
@@ -96,9 +104,10 @@ for idx, row in sample_games.iterrows():
 # 3️⃣ BUILD USER PROFILE VECTOR
 # ============================================================
 
-MECHANICS_WEIGHT = 2.0
+PLAYTIME_WEIGHT = 2.0   # ajustable
+MECHANICS_WEIGHT = 1.75
 
-numeric_cols = ["pes", "nota_bgg", "minplayers", "maxplayers"]
+numeric_cols = ["pes", "nota_bgg", "minplayers", "maxplayers", "playingtime"]
 feature_cols = numeric_cols + list(mec_cols.columns)
 
 # Scale numeric features
@@ -106,10 +115,14 @@ scaler = StandardScaler()
 X_numeric = scaler.fit_transform(df[numeric_cols])
 
 # Full feature matrix
+# Apply playtime weight to the last numeric column
+X_numeric[:, -1] *= PLAYTIME_WEIGHT
+
 X = np.hstack([
     X_numeric,
     mec_cols.values * MECHANICS_WEIGHT
 ])
+
 
 # Rated games
 rated_games = df[df["nom_del_joc"].isin(user_ratings.keys())].copy()
@@ -121,6 +134,11 @@ user_profile_numeric = np.average(
     axis=0,
     weights=rated_games["user_rating"]
 )
+
+# Apply weight to playingtime (last numeric feature)
+user_profile_numeric[-1] *= PLAYTIME_WEIGHT
+pref_numeric_vector[-1] *= PLAYTIME_WEIGHT
+
 
 # Mecànica profile from ratings
 rated_mec_matrix = mec_cols.loc[rated_games.index].values
@@ -135,8 +153,10 @@ pref_df = pd.DataFrame([{
     "pes": pes_pref,
     "nota_bgg": nota_pref,
     "minplayers": num_jugadors,
-    "maxplayers": num_jugadors
+    "maxplayers": num_jugadors,
+    "playingtime": durada_pref
 }])[numeric_cols]
+
 
 pref_numeric_vector = scaler.transform(pref_df)[0]
 
