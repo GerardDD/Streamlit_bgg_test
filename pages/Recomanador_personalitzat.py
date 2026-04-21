@@ -96,6 +96,8 @@ for idx, row in sample_games.iterrows():
 # 3️⃣ BUILD USER PROFILE VECTOR
 # ============================================================
 
+MECHANICS_WEIGHT = 2.0
+
 numeric_cols = ["pes", "nota_bgg", "minplayers", "maxplayers"]
 feature_cols = numeric_cols + list(mec_cols.columns)
 
@@ -144,8 +146,11 @@ if f"mec_{mecanica_pref}" in mec_cols.columns:
 # Combine numeric + mecànica
 user_profile = np.concatenate([
     (user_profile_numeric + pref_numeric_vector) / 2,
-    (user_mec_from_ratings + user_mec_vector) / 2
+    ((user_mec_from_ratings + user_mec_vector) / 2) * MECHANICS_WEIGHT
 ])
+
+
+
 
 # ============================================================
 # 4️⃣ COMPUTE SIMILARITY AND RECOMMEND
