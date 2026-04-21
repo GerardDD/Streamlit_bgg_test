@@ -140,10 +140,6 @@ user_profile_numeric = np.average(
     weights=rated_games["user_rating"]
 )
 
-# Apply weight to playingtime (last numeric feature)
-user_profile_numeric[-1] *= PLAYTIME_WEIGHT
-pref_numeric_vector[-1] *= PLAYTIME_WEIGHT
-
 
 # Mecànica profile from ratings
 rated_mec_matrix = mec_cols.loc[rated_games.index].values
@@ -162,7 +158,11 @@ pref_df = pd.DataFrame([{
     "playingtime": durada_pref
 }])[numeric_cols]
 
+pref_numeric_vector = scaler.transform(pref_df)[0]
 
+# Apply weight to playingtime (last numeric feature)
+user_profile_numeric[-1] *= PLAYTIME_WEIGHT
+pref_numeric_vector[-1] *= PLAYTIME_WEIGHT
 
 pref_numeric_vector = scaler.transform(pref_df)[0]
 
