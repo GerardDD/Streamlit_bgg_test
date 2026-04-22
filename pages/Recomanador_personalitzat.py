@@ -14,6 +14,7 @@ st.title("🎯 Recomanador personalitzat de jocs")
 
 df = pd.read_csv("pages/collection.csv", sep=",", engine="python")
 
+# Ensure playingtime exists
 if "playingtime" not in df.columns:
     st.error("⚠️ La columna 'playingtime' no existeix al CSV!")
 else:
@@ -33,6 +34,8 @@ df = df.rename(columns={
 # Ensure required columns exist
 required_cols = ["pes", "nota_bgg", "minplayers", "maxplayers"]
 df = df.dropna(subset=required_cols)
+
+# Clean mechanics text
 df["comment"] = df["comment"].replace(r"^\s*$", "No informat", regex=True)
 df["comment"] = df["comment"].fillna("No informat")
 df["comment"] = df["comment"].replace("Selecció accions", "Selecció d'accions", regex=True)
@@ -47,6 +50,11 @@ df["comment"] = df["comment"].replace("Pseudo-wargames", "Pseudo-Wargame", regex
 
 df = df.rename(columns={"comment": "Mecànica_principal"})
 
+# Ensure 'own' exists
+if "own" not in df.columns:
+    st.warning("⚠️ El CSV no té la columna 'own'. Es crearà amb valor 0.")
+    df["own"] = 0
+
 # One-hot encoding
 mec_cols = pd.get_dummies(df["Mecànica_principal"], prefix="mec")
 df = pd.concat([df, mec_cols], axis=1)
@@ -60,42 +68,29 @@ st.header("🧩 Preferències del jugador")
 pes_pref = st.slider("Pes preferit (complexitat):", 0.0, 5.0, 2.5, 0.1)
 nota_pref = st.slider("Nota mínima BGG:", 0.0, 10.0, 6.5, 0.1)
 
-num_jugadors = st.slider(
-    "Nombre de jugadors preferit:",
-    1, 10, 3
-)
+num_jugadors = st.slider("Nombre de jugadors preferit:", 1, 10, 3)
 
-durada_pref = st.slider(
-    "Durada preferida (minuts):",
-    10, 300, 60, 5
-)
+durada_pref = st.slider("Durada preferida (minuts):", 10, 300, 60, 5)
 
-
-# Mecànica preferida
 mecaniques = ["Qualsevol"] + sorted(df["Mecànica_principal"].unique())
-mecanica_pref = st.selectbox("Mecànica preferida:", mecaniques)
-
-
+mecanica_pref = st.selectbox("Mecànica preferida:", mecanica_pref)
 
 # ============================================================
-# 2️⃣ USER RATINGS FOR SAMPLE GAMES (WITH RESHUFFLE)
+# 2️⃣ USER RATINGS FOR SAMPLE GAMES
 # ============================================================
 
 st.subheader("⚙️ Opcions del recomanador")
-
 filter_owned = st.checkbox("Només mostrar jocs que tinc en propietat", value=False)
-
-
 
 st.header("⭐ Avalua alguns jocs")
 
 if "sample_games" not in st.session_state:
-    st.session_state.sample_games = df.sample(10, random_state=None)[
+    st.session_state.sample_games = df.sample(10)[
         ["nom_del_joc", "pes", "nota_bgg", "minplayers", "maxplayers", "Mecànica_principal"]
     ]
 
 if st.button("🔄 Tornar a mostrar altres jocs"):
-    st.session_state.sample_games = df.sample(10, random_state=None)[
+    st.session_state.sample_games = df.sample(10)[
         ["nom_del_joc", "pes", "nota_bgg", "minplayers", "maxplayers", "Mecànica_principal"]
     ]
 
@@ -120,49 +115,35 @@ for idx, row in sample_games.iterrows():
     user_ratings[row["nom_del_joc"]] = rating
     ignore_flags[row["nom_del_joc"]] = ignore
 
-
 # ============================================================
 # 3️⃣ BUILD USER PROFILE VECTOR
 # ============================================================
 
-PLAYTIME_WEIGHT = 2.0   # ajustable
+PLAYTIME_WEIGHT = 2.0
 MECHANICS_WEIGHT = 1.75
 
 numeric_cols = ["pes", "nota_bgg", "minplayers", "maxplayers", "playingtime"]
-feature_cols = numeric_cols + list(mec_cols.columns)
 
-# Scale numeric features
 scaler = StandardScaler()
 X_numeric = scaler.fit_transform(df[numeric_cols])
 
-# Full feature matrix
-# Apply playtime weight to the last numeric column
+# Apply weight to playingtime
 X_numeric[:, -1] *= PLAYTIME_WEIGHT
 
-X = np.hstack([
-    X_numeric,
-    mec_cols.values * MECHANICS_WEIGHT
-])
-
+X = np.hstack([X_numeric, mec_cols.values * MECHANICS_WEIGHT])
 
 # Rated games
-rated_games = df[
-    df["nom_del_joc"].isin(
-        [g for g in user_ratings.keys() if not ignore_flags[g]]
-    )
-].copy()
-
+rated_games = df[df["nom_del_joc"].isin([g for g in user_ratings if not ignore_flags[g]])].copy()
 rated_games["user_rating"] = rated_games["nom_del_joc"].map(user_ratings)
 
-# Numeric profile from ratings
+# Numeric profile
 user_profile_numeric = np.average(
     scaler.transform(rated_games[numeric_cols]),
     axis=0,
     weights=rated_games["user_rating"]
 )
 
-
-# Mecànica profile from ratings
+# Mecànica profile
 rated_mec_matrix = mec_cols.loc[rated_games.index].values
 user_mec_from_ratings = np.average(
     rated_mec_matrix,
@@ -170,7 +151,7 @@ user_mec_from_ratings = np.average(
     weights=rated_games["user_rating"]
 )
 
-# Explicit preferences → numeric
+# Explicit preferences
 pref_df = pd.DataFrame([{
     "pes": pes_pref,
     "nota_bgg": nota_pref,
@@ -180,33 +161,22 @@ pref_df = pd.DataFrame([{
 }])[numeric_cols]
 
 pref_numeric_vector = scaler.transform(pref_df)[0]
-
-# Apply weight to playingtime (last numeric feature)
-user_profile_numeric[-1] *= PLAYTIME_WEIGHT
 pref_numeric_vector[-1] *= PLAYTIME_WEIGHT
 
-pref_numeric_vector = scaler.transform(pref_df)[0]
-
-# Explicit preferences → mecànica
+# Mecànica explícita
 user_mec_vector = np.zeros(len(mec_cols.columns))
-
 if mecanica_pref != "Qualsevol":
     colname = f"mec_{mecanica_pref}"
     if colname in mec_cols.columns:
-        idx = mec_cols.columns.get_loc(colname)
-        user_mec_vector[idx] = 1
+        user_mec_vector[mec_cols.columns.get_loc(colname)] = 1
 else:
     MECHANICS_WEIGHT = 0
 
-
-# Combine numeric + mecànica
+# Final user profile
 user_profile = np.concatenate([
     (user_profile_numeric + pref_numeric_vector) / 2,
     ((user_mec_from_ratings + user_mec_vector) / 2) * MECHANICS_WEIGHT
 ])
-
-
-
 
 # ============================================================
 # 4️⃣ COMPUTE SIMILARITY AND RECOMMEND
@@ -215,15 +185,17 @@ user_profile = np.concatenate([
 similarities = cosine_similarity([user_profile], X)[0]
 df["similarity"] = similarities
 
-# Filter by preferences
 df_filtered = df[
     (df["nota_bgg"] >= nota_pref) &
     (df["minplayers"] <= num_jugadors) &
     (df["maxplayers"] >= num_jugadors)
 ]
 
-# Sort by similarity
-recommendations = df_filtered.sort_values("similarity", ascending=False).head(10)
+recommendations = df_filtered.sort_values("similarity", ascending=False).head(50)
+
+# Apply OWN filter
+if filter_owned:
+    recommendations = recommendations[recommendations["own"] == 1]
 
 # ============================================================
 # OUTPUT
@@ -234,17 +206,8 @@ st.subheader("✨ Recomanacions de jocs")
 if recommendations.empty:
     st.success("🎉 No hi ha recomanacions noves!")
 else:
-    # Convertim la sèrie a dataframe
-    rec_df = recommendations.reset_index()
-    rec_df.columns = ["game", "score"]
-
-    # Unim amb la col·lecció per saber si el joc és en propietat
-    rec_df = rec_df.merge(df[["nom_del_joc", "own"]], left_on="game", right_on="nom_del_joc", how="left")
-
-    # Apliquem el filtre si cal
-    if filter_owned:
-        rec_df = rec_df[rec_df["own"] == 1]
-
-    # Mostrem només els camps útils
-    st.write(rec_df[["game", "score", "own"]])
-
+    st.write(
+        recommendations[
+            ["nom_del_joc", "similarity", "own", "pes", "nota_bgg", "minplayers", "maxplayers", "Mecànica_principal"]
+        ]
+    )
