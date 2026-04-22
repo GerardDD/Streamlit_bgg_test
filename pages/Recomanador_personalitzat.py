@@ -234,7 +234,7 @@ def get_misutmeeple_summary(game_name: str) -> dict:
 
         link = soup.find("a", href=re.compile(r"misutmeeple\.com/\d{4}/"))
         if not link:
-            return {"found": False, "url": "", "summary": ""}
+            return {"found": False, "url": "", "summary": "", "image": ""}
 
         page_url = link["href"]
         r2 = requests.get(page_url, headers=headers, timeout=10)
@@ -245,12 +245,18 @@ def get_misutmeeple_summary(game_name: str) -> dict:
         summary = " ".join(p.get_text(strip=True) for p in paragraphs)
 
         if not summary.strip():
-            return {"found": False, "url": "", "summary": ""}
+            return {"found": False, "url": "", "summary": "", "image": ""}
 
-        return {"found": True, "url": page_url, "summary": summary}
+        # Extraer imagen destacada del artículo
+        image_url = ""
+        img_tag = soup2.select_one("article img")
+        if img_tag:
+            image_url = img_tag.get("src", "") or img_tag.get("data-src", "")
+
+        return {"found": True, "url": page_url, "summary": summary, "image": image_url}
 
     except Exception as e:
-        return {"found": False, "url": "", "summary": f"Error: {e}"}
+        return {"found": False, "url": "", "summary": f"Error: {e}", "image": ""}
 
 
 st.divider()
@@ -266,7 +272,15 @@ if not recommendations.empty:
     if result["found"]:
         st.success(f"✅ Resenya trobada per a **{top_game}**!")
         st.markdown(f"🔗 [Llegir la resenya completa a Misut Meeple]({result['url']})")
-        st.markdown(result["summary"])
+
+        if result["image"]:
+            col1, col2 = st.columns([1, 2])
+            with col1:
+                st.image(result["image"], use_container_width=True)
+            with col2:
+                st.markdown(result["summary"])
+        else:
+            st.markdown(result["summary"])
     else:
         st.info(f"ℹ️ No s'ha trobat cap resenya de **{top_game}** a Misut Meeple.")
 else:
