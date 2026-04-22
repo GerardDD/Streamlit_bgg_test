@@ -34,17 +34,51 @@ st.sidebar.header("Filtres")
 
 # --- Date filter ---
 if "Date" in df_2.columns:
+    df_2["Date"] = pd.to_datetime(df_2["Date"], errors="coerce")
+    df_2 = df_2.dropna(subset=["Date"])
+
     min_date = df_2["Date"].min()
     max_date = df_2["Date"].max()
 
-    date_range = st.sidebar.date_input(
-        "Rang de dates:",
-        value=(min_date, max_date),
-        min_value=min_date,
-        max_value=max_date
+    st.sidebar.markdown("### 🗓️ Rang de dates")
+
+    # Quick presets
+    preset = st.sidebar.selectbox(
+        "Període ràpid:",
+        ["Tot", "Últim any", "Últims 6 mesos", "Últim mes", "Personalitzat"]
     )
+
+    if preset == "Tot":
+        start, end = min_date, max_date
+
+    elif preset == "Últim any":
+        start = max_date - pd.DateOffset(years=1)
+        end = max_date
+
+    elif preset == "Últims 6 mesos":
+        start = max_date - pd.DateOffset(months=6)
+        end = max_date
+
+    elif preset == "Últim mes":
+        start = max_date - pd.DateOffset(months=1)
+        end = max_date
+
+    else:
+        start, end = st.sidebar.date_input(
+            "Selecciona dates:",
+            value=(min_date, max_date),
+            min_value=min_date,
+            max_value=max_date
+        )
+
+    # Apply filter
+    df_filtered = df_2[
+        (df_2["Date"] >= pd.to_datetime(start)) &
+        (df_2["Date"] <= pd.to_datetime(end))
+    ]
 else:
-    date_range = None
+    df_filtered = df_2.copy()
+
 
 # --- Players filter ---
 if "Players" in df_2.columns:
@@ -125,11 +159,52 @@ with col3:
 st.subheader("📅 Evolució de partides en el temps")
 
 if "Date" in df_filtered.columns:
-    df_time = df_filtered.groupby(df_filtered["Date"].dt.to_period("M")).size().reset_index(name="count")
-    df_time["Date"] = df_time["Date"].dt.to_timestamp()
 
-    fig_time = px.line(df_time, x="Date", y="count", title="Partides per mes")
+    agrupacio = st.radio(
+        "Agrupa per:",
+        ["Dia", "Setmana", "Mes", "Any"],
+        horizontal=True
+    )
+
+    if agrupacio == "Dia":
+        df_time = df_filtered.groupby(df_filtered["Date"].dt.date).size().reset_index(name="count")
+        df_time["Date"] = pd.to_datetime(df_time["Date"])
+
+    elif agrupacio == "Setmana":
+        df_time = df_filtered.groupby(df_filtered["Date"].dt.to_period("W")).size().reset_index(name="count")
+        df_time["Date"] = df_time["Date"].dt.start_time
+
+    elif agrupacio == "Mes":
+        df_time = df_filtered.groupby(df_filtered["Date"].dt.to_period("M")).size().reset_index(name="count")
+        df_time["Date"] = df_time["Date"].dt.to_timestamp()
+
+    else:  # Any
+        df_time = df_filtered.groupby(df_filtered["Date"].dt.to_period("Y")).size().reset_index(name="count")
+        df_time["Date"] = df_time["Date"].dt.to_timestamp()
+
+    # Gràfic principal
+    fig_time = px.line(
+        df_time,
+        x="Date",
+        y="count",
+        markers=True,
+        title=f"Partides per {agrupacio.lower()}",
+    )
+    fig_time.update_traces(line=dict(width=3))
     st.plotly_chart(fig_time, use_container_width=True)
+
+    # Gràfic acumulat
+    df_time["acumulat"] = df_time["count"].cumsum()
+
+    fig_acum = px.area(
+        df_time,
+        x="Date",
+        y="acumulat",
+        title="Evolució acumulada de partides",
+        color_discrete_sequence=["#4C78A8"]
+    )
+    st.plotly_chart(fig_acum, use_container_width=True)
+
 
 st.subheader("🏆 Jocs més jugats")
 
