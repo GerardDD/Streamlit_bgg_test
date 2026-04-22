@@ -210,6 +210,6 @@ if recommendations.empty:
 else:
     st.write(
         recommendations[
-            ["nom_del_joc", "similarity", "own", "pes", "nota_bgg", "minplayers", "maxplayers", "Mecànica_principal"]
+            ["nom_del_joc", "similarity", "own", "pes", "nota_bgg", "playingtime", "minplayers", "maxplayers", "Mecànica_principal"]
         ]
     )
