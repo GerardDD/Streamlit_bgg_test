@@ -4,6 +4,7 @@ import plotly.express as px
 from itertools import combinations
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
+from datetime import date
 
 st.set_page_config(layout="wide")
 
@@ -18,6 +19,10 @@ df = pd.read_csv("pages/collection.csv", sep=",", engine="python")
 
 # Load df_2 (plays)
 df_2 = pd.read_csv("pages/playsMrbrussels.csv", sep=",", engine="python")
+
+# Assegurem que la columna Players existeix
+if "Players" not in df_2.columns:
+    df_2["Players"] = ""
 
 # Clean Players column (remove numbers and brackets)
 df_2["Players"] = (
@@ -40,11 +45,9 @@ if "Date" in df_2.columns:
 
 st.sidebar.header("Filtres")
 
-from datetime import date
-
 # --- Date filter ---
-if "Date" in df_2.columns:
-    # Convert and clean dates
+if "Date" in df_2.columns and not df_2["Date"].isna().all():
+    # Convert and clean dates (per si de cas)
     df_2["Date"] = pd.to_datetime(df_2["Date"], errors="coerce")
     df_2 = df_2.dropna(subset=["Date"])
 
@@ -52,7 +55,6 @@ if "Date" in df_2.columns:
     data_max = df_2["Date"].max().date()
 
     today = date.today()
-    # Permetem seleccionar fins avui perquè els shortcuts funcionin
     picker_max = max(data_max, today)
 
     date_range = st.sidebar.date_input(
@@ -63,7 +65,8 @@ if "Date" in df_2.columns:
     )
 else:
     date_range = None
-
+    data_min = None
+    data_max = None
 
 # --- Players filter ---
 if "Players" in df_2.columns:
@@ -83,6 +86,7 @@ if "Players" in df_2.columns:
     )
 else:
     players_sel = None
+
 # ============================
 # 🔵 APPLY FILTERS
 # ============================
@@ -90,13 +94,12 @@ else:
 df_filtered = df_2.copy()
 
 # Filter by date (robust + clamp)
-if date_range is not None:
+if date_range is not None and data_min is not None and data_max is not None:
     if isinstance(date_range, tuple) and len(date_range) == 2:
         start, end = date_range
     else:
         start = end = date_range
 
-    # Clampejar al rang real de les dades
     start = max(start, data_min)
     end = min(end, data_max)
 
@@ -109,10 +112,10 @@ if date_range is not None:
     ]
 
 # Filter by players
-if players_sel:
+if players_sel and "Players" in df_filtered.columns:
     df_filtered = df_filtered[
-        df_filtered["Players"].apply(
-            lambda x: any(p.strip() in players_sel for p in str(x).split(","))
+        df_filtered["Players"].astype(str).apply(
+            lambda x: any(p.strip() in players_sel for p in x.split(","))
         )
     ]
 
@@ -132,20 +135,23 @@ game_col = [c for c in df_filtered.columns if "Name" in c or "object" in c.lower
 game_col = game_col[0] if game_col else None
 
 with col2:
-    if game_col:
+    if game_col and not df_filtered.empty:
         st.metric("🧩 Jocs diferents jugats", df_filtered[game_col].nunique())
     else:
         st.metric("🧩 Jocs diferents jugats", "—")
 
 with col3:
-    total_players = (
-        df_filtered["Players"]
-        .str.split(",")
-        .explode()
-        .str.strip()
-        .nunique()
-    )
-    st.metric("👥 Jugadors diferents", total_players)
+    if "Players" in df_filtered.columns and not df_filtered.empty:
+        total_players = (
+            df_filtered["Players"]
+            .str.split(",")
+            .explode()
+            .str.strip()
+            .nunique()
+        )
+        st.metric("👥 Jugadors diferents", total_players)
+    else:
+        st.metric("👥 Jugadors diferents", "—")
 
 # ============================
 # 🔵 VISUALITZACIONS (all use df_filtered)
@@ -155,21 +161,17 @@ st.subheader("📅 Evolució de partides en el temps")
 
 if "Date" in df_filtered.columns and not df_filtered.empty:
 
-    # Agrupació automàtica segons rang seleccionat
     days_range = (df_filtered["Date"].max() - df_filtered["Date"].min()).days
 
     if days_range <= 31:
-        # Rang curt → per dia
         df_time = df_filtered.groupby(df_filtered["Date"].dt.date).size().reset_index(name="count")
         df_time["Date"] = pd.to_datetime(df_time["Date"])
         tick_format = "%d/%m"
     elif days_range <= 370:
-        # Rang mitjà → per mes
         df_time = df_filtered.groupby(df_filtered["Date"].dt.to_period("M")).size().reset_index(name="count")
         df_time["Date"] = df_time["Date"].dt.to_timestamp()
         tick_format = "%m/%Y"
     else:
-        # Rang llarg → per any
         df_time = df_filtered.groupby(df_filtered["Date"].dt.to_period("Y")).size().reset_index(name="count")
         df_time["Date"] = df_time["Date"].dt.to_timestamp()
         tick_format = "%Y"
@@ -182,7 +184,6 @@ if "Date" in df_filtered.columns and not df_filtered.empty:
         title="Evolució de partides en el temps"
     )
 
-    # Format net de l’eix X
     fig_time.update_xaxes(
         tickformat=tick_format,
         nticks=12,
@@ -192,7 +193,6 @@ if "Date" in df_filtered.columns and not df_filtered.empty:
     fig_time.update_traces(line=dict(width=3))
 
     st.plotly_chart(fig_time, use_container_width=True)
-
 
 st.subheader("🏆 Jocs més jugats")
 
@@ -213,7 +213,7 @@ if game_col and not df_filtered.empty:
 
 st.subheader("👤 Jugadors més actius")
 
-if not df_filtered.empty:
+if "Players" in df_filtered.columns and not df_filtered.empty:
     players = (
         df_filtered["Players"]
         .str.split(",")
@@ -235,6 +235,8 @@ if not df_filtered.empty:
     )
     fig_players.update_layout(yaxis=dict(autorange="reversed"))
     st.plotly_chart(fig_players, use_container_width=True)
+else:
+    st.info("No hi ha dades de jugadors per mostrar el rànquing.")
 
 # ============================
 # 🔵 HEATMAP: Jugadors que juguen junts (només jugadors filtrats)
@@ -242,15 +244,13 @@ if not df_filtered.empty:
 
 st.subheader("🤝 Jugadors que juguen junts (Heatmap)")
 
-if players_sel and not df_filtered.empty:
-    # Expand players into lists
+if players_sel and "Players" in df_filtered.columns and not df_filtered.empty:
     pairs_df = (
         df_filtered["Players"]
         .str.split(",")
         .apply(lambda lst: [p.strip() for p in lst if p.strip()])
     )
 
-    # Keep only filtered players
     pairs_df = pairs_df.apply(lambda lst: [p for p in lst if p in players_sel])
 
     pair_counts = {}
@@ -260,7 +260,6 @@ if players_sel and not df_filtered.empty:
             for p1, p2 in combinations(sorted(players_list), 2):
                 pair_counts[(p1, p2)] = pair_counts.get((p1, p2), 0) + 1
 
-    # Build symmetric matrix
     all_players = sorted(players_sel)
     matrix = pd.DataFrame(0, index=all_players, columns=all_players)
 
@@ -282,7 +281,7 @@ if players_sel and not df_filtered.empty:
     else:
         st.info("No hi ha prou dades per generar el heatmap amb els jugadors filtrats.")
 else:
-    st.info("Selecciona algun jugador per veure el heatmap.")
+    st.info("Selecciona algun jugador i assegura’t que hi hagi dades filtrades per veure el heatmap.")
 
 # ============================
 # 🔵 RECOMMENDER
@@ -290,7 +289,6 @@ else:
 
 st.header("🎯 Recomanador de jocs basat en jugadors similars")
 
-# Detect game column
 game_col = [c for c in df_2.columns if "Name" in c or "object" in c.lower()]
 game_col = game_col[0] if game_col else None
 
