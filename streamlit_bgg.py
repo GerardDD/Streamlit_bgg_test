@@ -230,42 +230,60 @@ if archivo:
         labels=["Antiguitat", "Moderna", "Post-Pandèmia"]
     )
 
-    # ============================
-    # 🔵 FILTROS INTERACTIVOS
-    # ============================
+# ============================
+# 🔵 FILTRES INTERACTIUS
+# ============================
 
-    st.sidebar.header("Filtres")
+st.sidebar.header("Filtres")
 
-    # Filtro por época
-    epocas_sel = st.sidebar.multiselect(
-        "Selecciona epoques:",
-        options=df["epocas"].dropna().unique(),
-        default=df["epocas"].dropna().unique()
-    )
+# Filtro por época
+epocas_sel = st.sidebar.multiselect(
+    "Selecciona epoques:",
+    options=df["epocas"].dropna().unique(),
+    default=df["epocas"].dropna().unique()
+)
 
-    # Filtro por rango de años
-    min_year = int(df["any_publicació"].min(skipna=True))
-    max_year = int(df["any_publicació"].max(skipna=True))
+# Filtro por rango de años
+min_year = int(df["any_publicació"].min(skipna=True))
+max_year = int(df["any_publicació"].max(skipna=True))
 
-    year_range = st.sidebar.slider(
-        "Rang d'anys:",
-        min_year, max_year, (min_year, max_year)
-    )
+year_range = st.sidebar.slider(
+    "Rang d'anys:",
+    min_year, max_year, (min_year, max_year)
+)
 
-    # Filtro por idioma
-    try:
-        idiomas = df["version_languages"].dropna().unique()
-    except:
-        idiomas = ['Desconegut']
-        pass
-    finally:
-        pass
-    idioma_sel = st.sidebar.multiselect(
-        "Idioma:",
-        options=idiomas,
-        # default=idiomas[:5] if len(idiomas) > 5 else idiomas
-        default=idiomas
-    )
+# Filtro por idioma
+idiomas = df["version_languages"].dropna().unique() if "version_languages" in df.columns else ["Desconegut"]
+
+idioma_sel = st.sidebar.multiselect(
+    "Idioma:",
+    options=idiomas,
+    default=idiomas
+)
+
+# 🔵 NOU FILTRE: Jocs en propietat
+if "own" in df.columns:
+    filtre_own = st.sidebar.checkbox("Només jocs en propietat", value=False)
+else:
+    filtre_own = False
+
+# Aplicar filtres
+df_filtrado = df.copy()
+
+if epocas_sel:
+    df_filtrado = df_filtrado[df_filtrado["epocas"].isin(epocas_sel)]
+
+df_filtrado = df_filtrado[
+    df_filtrado["any_publicació"].between(year_range[0], year_range[1], inclusive="both")
+]
+
+if idioma_sel and metode != "📁 Pujar un CSV manualment":
+    df_filtrado = df_filtrado[df_filtrado["version_languages"].isin(idioma_sel)]
+
+# 🔵 Aplicar filtre de jocs en propietat
+if filtre_own and "own" in df_filtrado.columns:
+    df_filtrado = df_filtrado[df_filtrado["own"] == 1]
+
 
     # Aplicar filtros
     df_filtrado = df.copy()
