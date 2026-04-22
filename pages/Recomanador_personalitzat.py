@@ -281,25 +281,7 @@ if not recommendations.empty:
     st.markdown(f"Cercant informació sobre **{top_game}** a Misut Meeple...")
 
     with st.spinner(f"Buscant resenya de '{top_game}'..."):
-        result = get_misutmeeple_summary(top_game)
-
-   
-    """if result["found"]:
-        st.success(f"✅ Resenya trobada per a **{top_game}**!")
-        st.markdown(f"🔗 [Llegir la resenya completa a Misut Meeple]({result['url']})")
-
-        col1, col2 = st.columns([1, 2])
-        with col1:
-            if result["image"]:
-                st.image(result["image"], use_container_width=True)
-            if result["sello"]:
-                st.image(result["sello"], use_container_width=True)
-        with col2:
-            st.markdown(result["summary"])"""
-    
-    
-    
-    
+        result = get_misutmeeple_summary(top_game)   
     
     
     if result["found"]:
