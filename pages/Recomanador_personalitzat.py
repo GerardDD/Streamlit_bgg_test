@@ -219,17 +219,10 @@ else:
 # 5️⃣ MISUT MEEPLE - RESEÑA DEL JUEGO MÁS RECOMENDADO
 # ============================================================
 
-st.divider()
-st.header("📖 Reseña a Misut Meeple")
+import anthropic
+import re
 
-if not recommendations.empty:
-    top_game = recommendations.iloc[0]["nom_del_joc"]
-    st.markdown(f"Cercant informació sobre **{top_game}** a Misut Meeple...")
-
-    import anthropic
-    import re
-
-    @st.cache_data(show_spinner=False)
+@st.cache_data(show_spinner=False)
 def get_misutmeeple_summary(game_name: str) -> dict:
     client = anthropic.Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
 
@@ -262,3 +255,24 @@ Responde en catalán."""
     summary = full_text.replace(url, "").strip(" .,\n")
 
     return {"found": True, "url": url, "summary": summary}
+
+
+st.divider()
+st.header("📖 Resenya a Misut Meeple")
+
+if not recommendations.empty:
+    top_game = recommendations.iloc[0]["nom_del_joc"]
+    st.markdown(f"Cercant informació sobre **{top_game}** a Misut Meeple...")
+
+    with st.spinner(f"Buscant resenya de '{top_game}'..."):
+        result = get_misutmeeple_summary(top_game)
+
+    if result["found"]:
+        st.success(f"✅ Resenya trobada per a **{top_game}**!")
+        if result["url"]:
+            st.markdown(f"🔗 [Llegir la resenya completa a Misut Meeple]({result['url']})")
+        st.markdown(result["summary"])
+    else:
+        st.info(f"ℹ️ No s'ha trobat cap resenya de **{top_game}** a Misut Meeple.")
+else:
+    st.info("No hi ha recomanacions per mostrar.")
