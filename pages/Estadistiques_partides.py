@@ -257,6 +257,11 @@ if players_sel and not df_filtered.empty:
         matrix.loc[p, p] = sum(p in lst for lst in pairs_df)
 
     if matrix.values.sum() > 0:
+        
+        # Posem la diagonal a NaN perquè no es pinti
+        for p in all_players:
+            matrix.loc[p, p] = None
+            
         fig_heatmap = px.imshow(
             matrix,
             text_auto=True,
