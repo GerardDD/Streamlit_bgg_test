@@ -241,8 +241,9 @@ def get_misutmeeple_summary(game_name: str) -> dict:
         soup2 = BeautifulSoup(r2.text, "html.parser")
 
         # Extraer intro del artículo (primeros párrafos)
+        
         paragraphs = soup2.select("article p")[:3]
-        summary = " ".join(p.get_text(strip=True) for p in paragraphs)
+        summary = "\n\n".join(p.get_text(separator=" ", strip=True) for p in paragraphs)
 
         if not summary.strip():
             return {"found": False, "url": "", "summary": "", "image": ""}
