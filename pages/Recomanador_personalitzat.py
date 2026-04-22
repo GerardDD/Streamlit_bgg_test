@@ -215,3 +215,72 @@ else:
             ["nom_del_joc", "similarity", "Mecànica_principal", "pes", "nota_bgg", "playingtime", "minplayers", "maxplayers"]
         ]
     )
+# ============================================================
+# 5️⃣ MISUT MEEPLE - RESEÑA DEL JUEGO MÁS RECOMENDADO
+# ============================================================
+
+st.divider()
+st.header("📖 Reseña a Misut Meeple")
+
+if not recommendations.empty:
+    top_game = recommendations.iloc[0]["nom_del_joc"]
+    st.markdown(f"Cercant informació sobre **{top_game}** a Misut Meeple...")
+
+    import anthropic
+    import re
+
+    @st.cache_data(show_spinner=False)
+    def get_misutmeeple_summary(game_name: str) -> dict:
+        """
+        Uses Claude with web_search to find and summarize
+        the Misut Meeple review for the given game.
+        Returns a dict with keys: found (bool), url (str), summary (str)
+        """
+        client = anthropic.Anthropic()
+
+        prompt = f"""Busca en el blog Misut Meeple (misutmeeple.com) una reseña del juego de mesa "{game_name}".
+
+Si encuentras la reseña:
+1. Indica la URL exacta de la página.
+2. Haz un resumen breve (3-5 frases) con: de qué trata el juego, mecánica principal, número de jugadores, duración aproximada y valoración general del autor.
+
+Si NO encuentras ninguna reseña de este juego en misutmeeple.com, responde exactamente con: NO_ENCONTRADO
+
+Responde en catalán."""
+
+        response = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=1000,
+            tools=[{"type": "web_search_20250305", "name": "web_search"}],
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        # Collect full text response
+        full_text = " ".join(
+            block.text for block in response.content if hasattr(block, "text")
+        ).strip()
+
+        if "NO_ENCONTRADO" in full_text:
+            return {"found": False, "url": "", "summary": ""}
+
+        # Try to extract URL
+        url_match = re.search(r"https?://misutmeeple\.com/\S+", full_text)
+        url = url_match.group(0).rstrip(".,)") if url_match else ""
+
+        # Remove URL from summary text for cleaner display
+        summary = full_text.replace(url, "").strip(" .,\n")
+
+        return {"found": True, "url": url, "summary": summary}
+
+    with st.spinner(f"Buscant resenya de '{top_game}' a Misut Meeple..."):
+        result = get_misutmeeple_summary(top_game)
+
+    if result["found"]:
+        st.success(f"✅ Resenya trobada per a **{top_game}**!")
+        if result["url"]:
+            st.markdown(f"🔗 [Llegir la resenya completa a Misut Meeple]({result['url']})")
+        st.markdown(result["summary"])
+    else:
+        st.info(f"ℹ️ No s'ha trobat cap resenya de **{top_game}** a Misut Meeple.")
+else:
+    st.info("No hi ha recomanacions per mostrar.")
