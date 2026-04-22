@@ -419,6 +419,56 @@ if archivo:
     )
     fig5 = fix_plotly_colors(fig5)
     st.plotly_chart(fig5, use_container_width=True)
+    
+    # ============================
+    # 🔵 GRÀFIC NOU: Top 10 mecàniques amb més partides jugades
+    # ============================
+
+    st.subheader("🧠 Top 10 mecàniques amb més partides jugades")
+
+    if not df_filtrado.empty and "comment" in df_filtrado.columns:
+
+        # Agrupar per mecànica i sumar partides
+        mecaniques_top = (
+            df_filtrado.groupby("comment")["num_partides"]
+            .sum()
+            .sort_values(ascending=False)
+            .head(10)
+            .reset_index()
+        )
+
+        mecaniques_top.columns = ["Mecànica", "Partides"]
+
+        fig_mec = px.bar(
+            mecaniques_top,
+            x="Partides",
+            y="Mecànica",
+            orientation="h",
+            text="Partides",
+            title="Top 10 mecàniques amb més partides jugades",
+            color="Partides",
+            color_continuous_scale="Oranges"
+        )
+
+        fig_mec.update_traces(
+            textposition="outside",
+            marker=dict(line=dict(color="black", width=0.5))
+        )
+
+        fig_mec.update_layout(
+            yaxis=dict(autorange="reversed"),
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            xaxis_title="Total de partides",
+            yaxis_title="Mecànica"
+        )
+
+        fig_mec = fix_plotly_colors(fig_mec)
+        st.plotly_chart(fig_mec, use_container_width=True)
+
+    else:
+        st.info("No hi ha dades suficients per generar el gràfic de mecàniques.")
+
 
     # ============================
     # 🔵 GRÁFICO 3: Juegos por idioma
