@@ -27,13 +27,15 @@ if "Date" in df_2.columns:
     df_2["Date"] = pd.to_datetime(df_2["Date"], errors="coerce")
 
 # ============================
-# 🔵 SIDEBAR FILTERS
+# 🔵 SIDEBAR FILTERS — DATES
 # ============================
 
 st.sidebar.header("Filtres")
 
 # --- Date filter ---
 if "Date" in df_2.columns:
+
+    # Convert and clean
     df_2["Date"] = pd.to_datetime(df_2["Date"], errors="coerce")
     df_2 = df_2.dropna(subset=["Date"])
 
@@ -64,18 +66,26 @@ if "Date" in df_2.columns:
         end = max_date
 
     else:
-        start, end = st.sidebar.date_input(
+        # User custom range
+        date_range = st.sidebar.date_input(
             "Selecciona dates:",
             value=(min_date, max_date),
             min_value=min_date,
             max_value=max_date
         )
 
+        # Handle single-date or tuple
+        if isinstance(date_range, tuple) and len(date_range) == 2:
+            start, end = date_range
+        else:
+            start = end = date_range
+
     # Apply filter
     df_filtered = df_2[
         (df_2["Date"] >= pd.to_datetime(start)) &
         (df_2["Date"] <= pd.to_datetime(end))
     ]
+
 else:
     df_filtered = df_2.copy()
 
