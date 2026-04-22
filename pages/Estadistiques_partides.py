@@ -142,16 +142,45 @@ with col3:
 st.subheader("📅 Evolució de partides en el temps")
 
 if "Date" in df_filtered.columns and not df_filtered.empty:
-    df_time = (
-        df_filtered
-        .groupby(df_filtered["Date"].dt.to_period("M"))
-        .size()
-        .reset_index(name="count")
-    )
-    df_time["Date"] = df_time["Date"].dt.to_timestamp()
 
-    fig_time = px.line(df_time, x="Date", y="count", title="Partides per mes")
+    # Agrupació automàtica segons rang seleccionat
+    days_range = (df_filtered["Date"].max() - df_filtered["Date"].min()).days
+
+    if days_range <= 31:
+        # Rang curt → per dia
+        df_time = df_filtered.groupby(df_filtered["Date"].dt.date).size().reset_index(name="count")
+        df_time["Date"] = pd.to_datetime(df_time["Date"])
+        tick_format = "%d/%m"
+    elif days_range <= 370:
+        # Rang mitjà → per mes
+        df_time = df_filtered.groupby(df_filtered["Date"].dt.to_period("M")).size().reset_index(name="count")
+        df_time["Date"] = df_time["Date"].dt.to_timestamp()
+        tick_format = "%m/%Y"
+    else:
+        # Rang llarg → per any
+        df_time = df_filtered.groupby(df_filtered["Date"].dt.to_period("Y")).size().reset_index(name="count")
+        df_time["Date"] = df_time["Date"].dt.to_timestamp()
+        tick_format = "%Y"
+
+    fig_time = px.line(
+        df_time,
+        x="Date",
+        y="count",
+        markers=True,
+        title="Evolució de partides en el temps"
+    )
+
+    # Format net de l’eix X
+    fig_time.update_xaxes(
+        tickformat=tick_format,
+        nticks=12,
+        showgrid=True
+    )
+
+    fig_time.update_traces(line=dict(width=3))
+
     st.plotly_chart(fig_time, use_container_width=True)
+
 
 st.subheader("🏆 Jocs més jugats")
 
