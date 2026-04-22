@@ -216,31 +216,58 @@ else:
         ]
     )
 # ============================================================
-# 5️⃣ MISUT MEEPLE - RESEÑA DEL JUEGO MÁS RECOMENDADO
+# 5️⃣ MISUT MEEPLE - RESENYA DEL JOC MÉS RECOMANAT
 # ============================================================
+
+import requests
+from bs4 import BeautifulSoup
+import re
 
 @st.cache_data(show_spinner=False)
 def get_misutmeeple_summary(game_name: str) -> dict:
     search_url = f"https://misutmeeple.com/?s={game_name.replace(' ', '+')}"
     headers = {"User-Agent": "Mozilla/5.0"}
-    
+
     try:
         r = requests.get(search_url, headers=headers, timeout=10)
         soup = BeautifulSoup(r.text, "html.parser")
-        
+
         link = soup.find("a", href=re.compile(r"misutmeeple\.com/\d{4}/"))
         if not link:
             return {"found": False, "url": "", "summary": ""}
-        
+
         page_url = link["href"]
         r2 = requests.get(page_url, headers=headers, timeout=10)
         soup2 = BeautifulSoup(r2.text, "html.parser")
-        
+
         # Extraer intro del artículo (primeros párrafos)
         paragraphs = soup2.select("article p")[:3]
         summary = " ".join(p.get_text(strip=True) for p in paragraphs)
-        
+
+        if not summary.strip():
+            return {"found": False, "url": "", "summary": ""}
+
         return {"found": True, "url": page_url, "summary": summary}
-    
+
     except Exception as e:
         return {"found": False, "url": "", "summary": f"Error: {e}"}
+
+
+st.divider()
+st.header("📖 Resenya a Misut Meeple")
+
+if not recommendations.empty:
+    top_game = recommendations.iloc[0]["nom_del_joc"]
+    st.markdown(f"Cercant informació sobre **{top_game}** a Misut Meeple...")
+
+    with st.spinner(f"Buscant resenya de '{top_game}'..."):
+        result = get_misutmeeple_summary(top_game)
+
+    if result["found"]:
+        st.success(f"✅ Resenya trobada per a **{top_game}**!")
+        st.markdown(f"🔗 [Llegir la resenya completa a Misut Meeple]({result['url']})")
+        st.markdown(result["summary"])
+    else:
+        st.info(f"ℹ️ No s'ha trobat cap resenya de **{top_game}** a Misut Meeple.")
+else:
+    st.info("No hi ha recomanacions per mostrar.")
