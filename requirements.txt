@@ -4,3 +4,4 @@ plotly
 pandas
 scikit-learn
 numpy
+anthropic
