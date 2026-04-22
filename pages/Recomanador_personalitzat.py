@@ -234,30 +234,43 @@ def get_misutmeeple_summary(game_name: str) -> dict:
 
         link = soup.find("a", href=re.compile(r"misutmeeple\.com/\d{4}/"))
         if not link:
-            return {"found": False, "url": "", "summary": "", "image": ""}
+            return {"found": False, "url": "", "summary": "", "image": "", "sello": ""}
 
         page_url = link["href"]
         r2 = requests.get(page_url, headers=headers, timeout=10)
         soup2 = BeautifulSoup(r2.text, "html.parser")
 
         # Extraer intro del artículo (primeros párrafos)
-        
         paragraphs = soup2.select("article p")[:3]
         summary = "\n\n".join(p.get_text(separator=" ", strip=True) for p in paragraphs)
 
         if not summary.strip():
-            return {"found": False, "url": "", "summary": "", "image": ""}
+            return {"found": False, "url": "", "summary": "", "image": "", "sello": ""}
 
-        # Extraer imagen destacada del artículo
+        # Imagen principal (primera imagen del artículo)
         image_url = ""
         img_tag = soup2.select_one("article img")
         if img_tag:
             image_url = img_tag.get("src", "") or img_tag.get("data-src", "")
 
-        return {"found": True, "url": page_url, "summary": summary, "image": image_url}
+        # Sello de valoración (imagen cuyo src contiene "sello")
+        sello_url = ""
+        for img in soup2.select("article img"):
+            src = img.get("src", "") or img.get("data-src", "")
+            if "sello" in src.lower():
+                sello_url = src
+                break
+
+        return {
+            "found": True,
+            "url": page_url,
+            "summary": summary,
+            "image": image_url,
+            "sello": sello_url
+        }
 
     except Exception as e:
-        return {"found": False, "url": "", "summary": f"Error: {e}", "image": ""}
+        return {"found": False, "url": "", "summary": f"Error: {e}", "image": "", "sello": ""}
 
 
 st.divider()
@@ -270,7 +283,26 @@ if not recommendations.empty:
     with st.spinner(f"Buscant resenya de '{top_game}'..."):
         result = get_misutmeeple_summary(top_game)
 
+   
     if result["found"]:
+        st.success(f"✅ Resenya trobada per a **{top_game}**!")
+        st.markdown(f"🔗 [Llegir la resenya completa a Misut Meeple]({result['url']})")
+
+        col1, col2 = st.columns([1, 2])
+        with col1:
+            if result["image"]:
+                st.image(result["image"], use_container_width=True)
+            if result["sello"]:
+                st.image(result["sello"], use_container_width=True)
+        with col2:
+            st.markdown(result["summary"])
+    
+    
+    
+    
+    
+    
+    """if result["found"]:
         st.success(f"✅ Resenya trobada per a **{top_game}**!")
         st.markdown(f"🔗 [Llegir la resenya completa a Misut Meeple]({result['url']})")
 
@@ -281,7 +313,7 @@ if not recommendations.empty:
             with col2:
                 st.markdown(result["summary"])
         else:
-            st.markdown(result["summary"])
+            st.markdown(result["summary"])"""
     else:
         st.info(f"ℹ️ No s'ha trobat cap resenya de **{top_game}** a Misut Meeple.")
 else:
