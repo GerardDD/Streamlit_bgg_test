@@ -229,6 +229,7 @@ st.dataframe(
     recommendations[[
         "nom_del_joc", "pes", "nota_bgg",
         "minplayers", "maxplayers",
+        "playingtime",
         "Mecànica_principal", "similarity"
     ]]
 )
