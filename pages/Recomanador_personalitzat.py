@@ -72,8 +72,10 @@ num_jugadors = st.slider("Nombre de jugadors preferit:", 1, 10, 3)
 
 durada_pref = st.slider("Durada preferida (minuts):", 10, 300, 60, 5)
 
+# Mecànica preferida
 mecaniques = ["Qualsevol"] + sorted(df["Mecànica_principal"].unique())
-mecanica_pref = st.selectbox("Mecànica preferida:", mecanica_pref)
+mecanica_pref = st.selectbox("Mecànica preferida:", mecaniques)
+
 
 # ============================================================
 # 2️⃣ USER RATINGS FOR SAMPLE GAMES
