@@ -460,7 +460,8 @@ if archivo:
         "Selecciona la variable per comparar amb nombre de partides:",
         options={
             "pes": "Pes (complexitat)",
-            "nota_bgg": "Nota BGG"
+            "nota_bgg": "Nota BGG",
+            "comment": "Mecànica de joc"
         }
     )
 
