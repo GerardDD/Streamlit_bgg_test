@@ -284,7 +284,7 @@ if not recommendations.empty:
         result = get_misutmeeple_summary(top_game)
 
    
-    if result["found"]:
+    """if result["found"]:
         st.success(f"✅ Resenya trobada per a **{top_game}**!")
         st.markdown(f"🔗 [Llegir la resenya completa a Misut Meeple]({result['url']})")
 
@@ -295,14 +295,14 @@ if not recommendations.empty:
             if result["sello"]:
                 st.image(result["sello"], use_container_width=True)
         with col2:
-            st.markdown(result["summary"])
+            st.markdown(result["summary"])"""
     
     
     
     
     
     
-    """if result["found"]:
+    if result["found"]:
         st.success(f"✅ Resenya trobada per a **{top_game}**!")
         st.markdown(f"🔗 [Llegir la resenya completa a Misut Meeple]({result['url']})")
 
@@ -313,7 +313,7 @@ if not recommendations.empty:
             with col2:
                 st.markdown(result["summary"])
         else:
-            st.markdown(result["summary"])"""
+            st.markdown(result["summary"])
     else:
         st.info(f"ℹ️ No s'ha trobat cap resenya de **{top_game}** a Misut Meeple.")
 else:
