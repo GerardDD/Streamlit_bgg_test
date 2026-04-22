@@ -23,7 +23,7 @@ st.sidebar.subheader("📂 Dades d'entrada")
 
 metode = st.sidebar.radio(
     "Com vols carregar les dades?",
-    ("📁 Pujar un CSV manualment", "💾 Veure la ludo de dumito per defecte")
+    ("📁 Pujar un CSV manualment", "💾 Veure la ludo de Mrbrussels per defecte")
 )
 
 df = None
@@ -37,6 +37,18 @@ else:
     default_path = "pages/collection.csv"
     if os.path.exists(default_path):
         df = pd.read_csv(default_path, sep=",", engine="python")
+        # Clean mechanics text
+        df["comment"] = df["comment"].replace(r"^\s*$", "No informat", regex=True)
+        df["comment"] = df["comment"].fillna("No informat")
+        df["comment"] = df["comment"].replace("Selecció accions", "Selecció d'accions", regex=True)
+        df["comment"] = df["comment"].replace("Car-driven", "Card-driven", regex=True)
+        df["comment"] = df["comment"].replace("Col·locació daus", "Col·locació de daus", regex=True)
+        df["comment"] = df["comment"].replace("Construcció motor", "Construcció de motor", regex=True)
+        df["comment"] = df["comment"].replace("Draft pùblic", "Draft públic", regex=True)
+        df["comment"] = df["comment"].replace("Gestió de la mà", "Gestió de mà", regex=True)
+        df["comment"] = df["comment"].replace("Pseudo-abstracte", "Pseudo-Abstracte", regex=True)
+        df["comment"] = df["comment"].replace("Pseudo-wargame", "Pseudo-Wargame", regex=True)
+        df["comment"] = df["comment"].replace("Pseudo-wargames", "Pseudo-Wargame", regex=True)
         st.sidebar.info(f"S'està utilitzant el CSV per defecte: {default_path}")
     else:
         st.sidebar.error(f"No s'ha trobat el fitxer per defecte: {default_path}")
