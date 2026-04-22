@@ -81,8 +81,7 @@ mecanica_pref = st.selectbox("Mecànica preferida:", mecaniques)
 # 2️⃣ USER RATINGS FOR SAMPLE GAMES
 # ============================================================
 
-st.subheader("⚙️ Opcions del recomanador")
-filter_owned = st.checkbox("Només mostrar jocs que tinc en propietat", value=False)
+
 
 st.header("⭐ Avalua alguns jocs")
 
@@ -204,6 +203,9 @@ if filter_owned:
 # ============================================================
 
 st.subheader("✨ Recomanacions de jocs")
+
+st.subheader("⚙️ Opcions del recomanador")
+filter_owned = st.checkbox("Només mostrar jocs que tinc en propietat", value=False)
 
 if recommendations.empty:
     st.success("🎉 No hi ha recomanacions noves!")
