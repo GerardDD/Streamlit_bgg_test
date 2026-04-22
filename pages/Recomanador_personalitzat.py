@@ -81,6 +81,12 @@ mecanica_pref = st.selectbox("Mecànica preferida:", mecaniques)
 # 2️⃣ USER RATINGS FOR SAMPLE GAMES (WITH RESHUFFLE)
 # ============================================================
 
+st.subheader("⚙️ Opcions del recomanador")
+
+filter_owned = st.checkbox("Només mostrar jocs que tinc en propietat", value=False)
+
+
+
 st.header("⭐ Avalua alguns jocs")
 
 if "sample_games" not in st.session_state:
@@ -223,13 +229,22 @@ recommendations = df_filtered.sort_values("similarity", ascending=False).head(10
 # OUTPUT
 # ============================================================
 
-st.header("🎉 Recomanacions per tu")
+st.subheader("✨ Recomanacions de jocs")
 
-st.dataframe(
-    recommendations[[
-        "nom_del_joc", "pes", "nota_bgg",
-        "minplayers", "maxplayers",
-        "playingtime",
-        "Mecànica_principal", "similarity"
-    ]]
-)
+if recommendations.empty:
+    st.success("🎉 No hi ha recomanacions noves!")
+else:
+    # Convertim la sèrie a dataframe
+    rec_df = recommendations.reset_index()
+    rec_df.columns = ["game", "score"]
+
+    # Unim amb la col·lecció per saber si el joc és en propietat
+    rec_df = rec_df.merge(df[["nom_del_joc", "own"]], left_on="game", right_on="nom_del_joc", how="left")
+
+    # Apliquem el filtre si cal
+    if filter_owned:
+        rec_df = rec_df[rec_df["own"] == 1]
+
+    # Mostrem només els camps útils
+    st.write(rec_df[["game", "score", "own"]])
+
