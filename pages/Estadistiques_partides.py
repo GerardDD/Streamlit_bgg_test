@@ -41,10 +41,17 @@ if "Date" in df_2.columns:
 st.sidebar.header("Filtres")
 
 # --- Date filter ---
-date_range = None
-if "Date" in df_2.columns and not df_2["Date"].isna().all():
-    min_date = df_2["Date"].min()
-    max_date = df_2["Date"].max()
+if "Date" in df_2.columns:
+
+    # Convert and clean dates
+    df_2["Date"] = pd.to_datetime(df_2["Date"], errors="coerce")
+
+    # Remove invalid dates
+    df_2 = df_2.dropna(subset=["Date"])
+
+    # IMPORTANT: recalc min/max AFTER cleaning
+    min_date = df_2["Date"].min().date()
+    max_date = df_2["Date"].max().date()
 
     date_range = st.sidebar.date_input(
         "Rang de dates:",
@@ -52,6 +59,9 @@ if "Date" in df_2.columns and not df_2["Date"].isna().all():
         min_value=min_date,
         max_value=max_date
     )
+else:
+    date_range = None
+
 
 # --- Players filter ---
 if "Players" in df_2.columns:
