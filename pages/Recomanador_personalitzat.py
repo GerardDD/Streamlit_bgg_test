@@ -72,7 +72,7 @@ durada_pref = st.slider(
 
 
 # Mecànica preferida
-mecaniques = sorted(df["Mecànica_principal"].unique())
+mecaniques = ["Qualsevol"] + sorted(df["Mecànica_principal"].unique())
 mecanica_pref = st.selectbox("Mecànica preferida:", mecaniques)
 
 
@@ -95,15 +95,25 @@ if st.button("🔄 Tornar a mostrar altres jocs"):
 
 sample_games = st.session_state.sample_games
 
+ignore_flags = {}
 user_ratings = {}
 
 for idx, row in sample_games.iterrows():
-    rating = st.slider(
-        f"Valoració per **{row['nom_del_joc']}**:",
-        1, 10, 5,
-        key=f"rating_{row['nom_del_joc']}"
-    )
+    col1, col2 = st.columns([3,1])
+
+    with col1:
+        rating = st.slider(
+            f"Valoració per **{row['nom_del_joc']}**:",
+            1, 10, 5,
+            key=f"rating_{row['nom_del_joc']}"
+        )
+
+    with col2:
+        ignore = st.checkbox("Ignorar", key=f"ignore_{row['nom_del_joc']}")
+
     user_ratings[row["nom_del_joc"]] = rating
+    ignore_flags[row["nom_del_joc"]] = ignore
+
 
 # ============================================================
 # 3️⃣ BUILD USER PROFILE VECTOR
@@ -130,7 +140,12 @@ X = np.hstack([
 
 
 # Rated games
-rated_games = df[df["nom_del_joc"].isin(user_ratings.keys())].copy()
+rated_games = df[
+    df["nom_del_joc"].isin(
+        [g for g in user_ratings.keys() if not ignore_flags[g]]
+    )
+].copy()
+
 rated_games["user_rating"] = rated_games["nom_del_joc"].map(user_ratings)
 
 # Numeric profile from ratings
@@ -168,9 +183,15 @@ pref_numeric_vector = scaler.transform(pref_df)[0]
 
 # Explicit preferences → mecànica
 user_mec_vector = np.zeros(len(mec_cols.columns))
-if f"mec_{mecanica_pref}" in mec_cols.columns:
-    idx = mec_cols.columns.get_loc(f"mec_{mecanica_pref}")
-    user_mec_vector[idx] = 1
+
+if mecanica_pref != "Qualsevol":
+    colname = f"mec_{mecanica_pref}"
+    if colname in mec_cols.columns:
+        idx = mec_cols.columns.get_loc(colname)
+        user_mec_vector[idx] = 1
+else:
+    MECHANICS_WEIGHT = 0
+
 
 # Combine numeric + mecànica
 user_profile = np.concatenate([
