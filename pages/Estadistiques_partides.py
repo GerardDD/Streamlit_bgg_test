@@ -40,24 +40,26 @@ if "Date" in df_2.columns:
 
 st.sidebar.header("Filtres")
 
+from datetime import date
+
 # --- Date filter ---
 if "Date" in df_2.columns:
-
     # Convert and clean dates
     df_2["Date"] = pd.to_datetime(df_2["Date"], errors="coerce")
-
-    # Remove invalid dates
     df_2 = df_2.dropna(subset=["Date"])
 
-    # IMPORTANT: recalc min/max AFTER cleaning
-    min_date = df_2["Date"].min().date()
-    max_date = df_2["Date"].max().date()
+    data_min = df_2["Date"].min().date()
+    data_max = df_2["Date"].max().date()
+
+    today = date.today()
+    # Permetem seleccionar fins avui perquè els shortcuts funcionin
+    picker_max = max(data_max, today)
 
     date_range = st.sidebar.date_input(
         "Rang de dates:",
-        value=(min_date, max_date),
-        min_value=min_date,
-        max_value=max_date
+        value=(data_min, data_max),
+        min_value=data_min,
+        max_value=picker_max
     )
 else:
     date_range = None
@@ -81,22 +83,22 @@ if "Players" in df_2.columns:
     )
 else:
     players_sel = None
-
 # ============================
 # 🔵 APPLY FILTERS
 # ============================
 
 df_filtered = df_2.copy()
 
-# Filter by date (robust)
+# Filter by date (robust + clamp)
 if date_range is not None:
-    # date_range pot ser:
-    # - una sola data
-    # - una tupla de dues dates
     if isinstance(date_range, tuple) and len(date_range) == 2:
         start, end = date_range
     else:
         start = end = date_range
+
+    # Clampejar al rang real de les dades
+    start = max(start, data_min)
+    end = min(end, data_max)
 
     start = pd.to_datetime(start)
     end = pd.to_datetime(end)
