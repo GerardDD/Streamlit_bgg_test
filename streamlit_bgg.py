@@ -494,7 +494,7 @@ if archivo:
 
     mostrar_expansions = st.checkbox("Mostrar expansions a la llista", value=False)
 
-    df_vergonya = df[df["num_partides"] == 0].copy()
+    df_vergonya = df_filtrado[df_filtrado["num_partides"] == 0].copy()
 
     if not mostrar_expansions:
         df_vergonya = df_vergonya[df_vergonya["itemtype"] != "expansion"]
