@@ -47,7 +47,7 @@ df["comment"] = df["comment"].replace("Gestió de la mà", "Gestió de mà", reg
 df["comment"] = df["comment"].replace("Pseudo-abstracte", "Pseudo-Abstracte", regex=True)
 df["comment"] = df["comment"].replace("Pseudo-wargame", "Pseudo-Wargame", regex=True)
 df["comment"] = df["comment"].replace("Pseudo-wargames", "Pseudo-Wargame", regex=True)
-
+df["comment"] = df["comment"].replace("Pseudo-Wargames", "Pseudo-Wargame", regex=True)
 df = df.rename(columns={"comment": "Mecànica_principal"})
 
 # Ensure 'own' exists
