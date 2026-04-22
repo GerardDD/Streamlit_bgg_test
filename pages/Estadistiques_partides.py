@@ -1,14 +1,20 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+from itertools import combinations
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
 
 st.set_page_config(layout="wide")
 
 st.title("🎮 Estadístiques de Partides")
 
+# ============================
+# LOAD DATA
+# ============================
+
 # Load bgg csv
 df = pd.read_csv("pages/collection.csv", sep=",", engine="python")
-
 
 # Load df_2 (plays)
 df_2 = pd.read_csv("pages/playsMrbrussels.csv", sep=",", engine="python")
@@ -16,79 +22,36 @@ df_2 = pd.read_csv("pages/playsMrbrussels.csv", sep=",", engine="python")
 # Clean Players column (remove numbers and brackets)
 df_2["Players"] = (
     df_2["Players"]
+    .astype(str)
     .str.replace(r"\(\d+\)", "", regex=True)
     .str.replace(r"\(-\d+\)", "", regex=True)
     .str.replace(r"\s+", " ", regex=True)
     .str.strip()
 )
 
-# Convert date if exists
+# Convert Date if exists
 if "Date" in df_2.columns:
     df_2["Date"] = pd.to_datetime(df_2["Date"], errors="coerce")
+    df_2 = df_2.dropna(subset=["Date"])
 
 # ============================
-# 🔵 SIDEBAR FILTERS — DATES
+# 🔵 SIDEBAR FILTERS
 # ============================
 
 st.sidebar.header("Filtres")
 
 # --- Date filter ---
-if "Date" in df_2.columns:
-
-    # Convert and clean
-    df_2["Date"] = pd.to_datetime(df_2["Date"], errors="coerce")
-    df_2 = df_2.dropna(subset=["Date"])
-
+date_range = None
+if "Date" in df_2.columns and not df_2["Date"].isna().all():
     min_date = df_2["Date"].min()
     max_date = df_2["Date"].max()
 
-    st.sidebar.markdown("### 🗓️ Rang de dates")
-
-    # Quick presets
-    preset = st.sidebar.selectbox(
-        "Període ràpid:",
-        ["Tot", "Últim any", "Últims 6 mesos", "Últim mes", "Personalitzat"]
+    date_range = st.sidebar.date_input(
+        "Rang de dates:",
+        value=(min_date, max_date),
+        min_value=min_date,
+        max_value=max_date
     )
-
-    if preset == "Tot":
-        start, end = min_date, max_date
-
-    elif preset == "Últim any":
-        start = max_date - pd.DateOffset(years=1)
-        end = max_date
-
-    elif preset == "Últims 6 mesos":
-        start = max_date - pd.DateOffset(months=6)
-        end = max_date
-
-    elif preset == "Últim mes":
-        start = max_date - pd.DateOffset(months=1)
-        end = max_date
-
-    else:
-        # User custom range
-        date_range = st.sidebar.date_input(
-            "Selecciona dates:",
-            value=(min_date, max_date),
-            min_value=min_date,
-            max_value=max_date
-        )
-
-        # Handle single-date or tuple
-        if isinstance(date_range, tuple) and len(date_range) == 2:
-            start, end = date_range
-        else:
-            start = end = date_range
-
-    # Apply filter
-    df_filtered = df_2[
-        (df_2["Date"] >= pd.to_datetime(start)) &
-        (df_2["Date"] <= pd.to_datetime(end))
-    ]
-
-else:
-    df_filtered = df_2.copy()
-
 
 # --- Players filter ---
 if "Players" in df_2.columns:
@@ -115,12 +78,22 @@ else:
 
 df_filtered = df_2.copy()
 
-# Filter by date
-if date_range and len(date_range) == 2:
-    start, end = date_range
+# Filter by date (robust)
+if date_range is not None:
+    # date_range pot ser:
+    # - una sola data
+    # - una tupla de dues dates
+    if isinstance(date_range, tuple) and len(date_range) == 2:
+        start, end = date_range
+    else:
+        start = end = date_range
+
+    start = pd.to_datetime(start)
+    end = pd.to_datetime(end)
+
     df_filtered = df_filtered[
-        (df_filtered["Date"] >= pd.to_datetime(start)) &
-        (df_filtered["Date"] <= pd.to_datetime(end))
+        (df_filtered["Date"] >= start) &
+        (df_filtered["Date"] <= end)
     ]
 
 # Filter by players
@@ -168,57 +141,21 @@ with col3:
 
 st.subheader("📅 Evolució de partides en el temps")
 
-if "Date" in df_filtered.columns:
-
-    agrupacio = st.radio(
-        "Agrupa per:",
-        ["Dia", "Setmana", "Mes", "Any"],
-        horizontal=True
+if "Date" in df_filtered.columns and not df_filtered.empty:
+    df_time = (
+        df_filtered
+        .groupby(df_filtered["Date"].dt.to_period("M"))
+        .size()
+        .reset_index(name="count")
     )
+    df_time["Date"] = df_time["Date"].dt.to_timestamp()
 
-    if agrupacio == "Dia":
-        df_time = df_filtered.groupby(df_filtered["Date"].dt.date).size().reset_index(name="count")
-        df_time["Date"] = pd.to_datetime(df_time["Date"])
-
-    elif agrupacio == "Setmana":
-        df_time = df_filtered.groupby(df_filtered["Date"].dt.to_period("W")).size().reset_index(name="count")
-        df_time["Date"] = df_time["Date"].dt.start_time
-
-    elif agrupacio == "Mes":
-        df_time = df_filtered.groupby(df_filtered["Date"].dt.to_period("M")).size().reset_index(name="count")
-        df_time["Date"] = df_time["Date"].dt.to_timestamp()
-
-    else:  # Any
-        df_time = df_filtered.groupby(df_filtered["Date"].dt.to_period("Y")).size().reset_index(name="count")
-        df_time["Date"] = df_time["Date"].dt.to_timestamp()
-
-    # Gràfic principal
-    fig_time = px.line(
-        df_time,
-        x="Date",
-        y="count",
-        markers=True,
-        title=f"Partides per {agrupacio.lower()}",
-    )
-    fig_time.update_traces(line=dict(width=3))
+    fig_time = px.line(df_time, x="Date", y="count", title="Partides per mes")
     st.plotly_chart(fig_time, use_container_width=True)
-
-    # Gràfic acumulat
-    df_time["acumulat"] = df_time["count"].cumsum()
-
-    fig_acum = px.area(
-        df_time,
-        x="Date",
-        y="acumulat",
-        title="Evolució acumulada de partides",
-        color_discrete_sequence=["#4C78A8"]
-    )
-    st.plotly_chart(fig_acum, use_container_width=True)
-
 
 st.subheader("🏆 Jocs més jugats")
 
-if game_col:
+if game_col and not df_filtered.empty:
     top_games = df_filtered[game_col].value_counts().head(10).reset_index()
     top_games.columns = ["Name", "count"]
 
@@ -235,27 +172,28 @@ if game_col:
 
 st.subheader("👤 Jugadors més actius")
 
-players = (
-    df_filtered["Players"]
-    .str.split(",")
-    .explode()
-    .str.strip()
-    .value_counts()
-    .head(10)
-    .reset_index()
-)
-players.columns = ["Player", "count"]
+if not df_filtered.empty:
+    players = (
+        df_filtered["Players"]
+        .str.split(",")
+        .explode()
+        .str.strip()
+        .value_counts()
+        .head(10)
+        .reset_index()
+    )
+    players.columns = ["Player", "count"]
 
-fig_players = px.bar(
-    players,
-    x="count",
-    y="Player",
-    orientation="h",
-    title="Top 10 jugadors més actius",
-    text="count"
-)
-fig_players.update_layout(yaxis=dict(autorange="reversed"))
-st.plotly_chart(fig_players, use_container_width=True)
+    fig_players = px.bar(
+        players,
+        x="count",
+        y="Player",
+        orientation="h",
+        title="Top 10 jugadors més actius",
+        text="count"
+    )
+    fig_players.update_layout(yaxis=dict(autorange="reversed"))
+    st.plotly_chart(fig_players, use_container_width=True)
 
 # ============================
 # 🔵 HEATMAP: Jugadors que juguen junts (només jugadors filtrats)
@@ -263,56 +201,51 @@ st.plotly_chart(fig_players, use_container_width=True)
 
 st.subheader("🤝 Jugadors que juguen junts (Heatmap)")
 
-from itertools import combinations
-
-# Expand players into lists
-pairs_df = (
-    df_filtered["Players"]
-    .str.split(",")
-    .apply(lambda lst: [p.strip() for p in lst if p.strip()])
-)
-
-# Keep only filtered players
-pairs_df = pairs_df.apply(lambda lst: [p for p in lst if p in players_sel])
-
-pair_counts = {}
-
-for players in pairs_df:
-    if len(players) > 1:
-        for p1, p2 in combinations(sorted(players), 2):
-            pair_counts[(p1, p2)] = pair_counts.get((p1, p2), 0) + 1
-
-# Build symmetric matrix
-all_players = sorted(players_sel)
-
-# Initialize matrix
-matrix = pd.DataFrame(0, index=all_players, columns=all_players)
-
-# Fill matrix symmetrically
-for (p1, p2), count in pair_counts.items():
-    matrix.loc[p1, p2] = count
-    matrix.loc[p2, p1] = count
-
-# Optional: diagonal = number of games each player appears in
-for p in all_players:
-    matrix.loc[p, p] = sum(p in lst for lst in pairs_df)
-
-# Plot heatmap
-if matrix.values.sum() > 0:
-    fig_heatmap = px.imshow(
-        matrix,
-        text_auto=True,
-        color_continuous_scale="Blues",
-        title="Freqüència de jugadors que coincideixen en partides (filtrat)"
+if players_sel and not df_filtered.empty:
+    # Expand players into lists
+    pairs_df = (
+        df_filtered["Players"]
+        .str.split(",")
+        .apply(lambda lst: [p.strip() for p in lst if p.strip()])
     )
-    st.plotly_chart(fig_heatmap, use_container_width=True)
+
+    # Keep only filtered players
+    pairs_df = pairs_df.apply(lambda lst: [p for p in lst if p in players_sel])
+
+    pair_counts = {}
+
+    for players_list in pairs_df:
+        if len(players_list) > 1:
+            for p1, p2 in combinations(sorted(players_list), 2):
+                pair_counts[(p1, p2)] = pair_counts.get((p1, p2), 0) + 1
+
+    # Build symmetric matrix
+    all_players = sorted(players_sel)
+    matrix = pd.DataFrame(0, index=all_players, columns=all_players)
+
+    for (p1, p2), count in pair_counts.items():
+        matrix.loc[p1, p2] = count
+        matrix.loc[p2, p1] = count
+
+    for p in all_players:
+        matrix.loc[p, p] = sum(p in lst for lst in pairs_df)
+
+    if matrix.values.sum() > 0:
+        fig_heatmap = px.imshow(
+            matrix,
+            text_auto=True,
+            color_continuous_scale="Blues",
+            title="Freqüència de jugadors que coincideixen en partides (filtrat)"
+        )
+        st.plotly_chart(fig_heatmap, use_container_width=True)
+    else:
+        st.info("No hi ha prou dades per generar el heatmap amb els jugadors filtrats.")
 else:
-    st.info("No hi ha prou dades per generar el heatmap amb els jugadors filtrats.")
+    st.info("Selecciona algun jugador per veure el heatmap.")
 
-# RECOMMENDER?
-
-import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
+# ============================
+# 🔵 RECOMMENDER
+# ============================
 
 st.header("🎯 Recomanador de jocs basat en jugadors similars")
 
@@ -323,54 +256,46 @@ game_col = game_col[0] if game_col else None
 if not game_col:
     st.warning("No s'ha trobat cap columna de jocs al CSV.")
 else:
-    # Expand players into rows
     df_expanded = df_2.copy()
     df_expanded["Players"] = df_expanded["Players"].str.split(",")
     df_expanded = df_expanded.explode("Players")
     df_expanded["Players"] = df_expanded["Players"].str.strip()
 
-    # Build user–item matrix
     user_item = (
         df_expanded.groupby(["Players", game_col])
         .size()
         .unstack(fill_value=0)
     )
 
-    # Select player
     all_players = sorted(user_item.index)
-    player_sel = st.selectbox("Selecciona un jugador:", all_players)
-
-    # Compute cosine similarity
-    similarity = cosine_similarity(user_item)
-    similarity_df = pd.DataFrame(similarity, index=user_item.index, columns=user_item.index)
-
-    # Find similar players
-    similar_players = (
-        similarity_df[player_sel]
-        .sort_values(ascending=False)
-        .drop(player_sel)
-        .head(5)
-    )
-
-    st.write("### 👥 Jugadors més semblants:")
-    st.write(similar_players)
-
-    # Games played by selected player
-    games_player = user_item.loc[player_sel]
-    games_player = games_player[games_player > 0].index.tolist()
-
-    # Games played by similar players
-    similar_users = similar_players.index.tolist()
-    games_similar = user_item.loc[similar_users].sum().sort_values(ascending=False)
-
-    # Recommend games not played yet
-    recommendations = games_similar[~games_similar.index.isin(games_player)].head(10)
-
-    st.subheader("✨ Recomanacions de jocs")
-    if recommendations.empty:
-        st.success("🎉 No hi ha recomanacions noves!")
+    if not all_players:
+        st.warning("No hi ha jugadors per construir el recomanador.")
     else:
-        st.write(recommendations)
+        player_sel = st.selectbox("Selecciona un jugador:", all_players)
 
+        similarity = cosine_similarity(user_item)
+        similarity_df = pd.DataFrame(similarity, index=user_item.index, columns=user_item.index)
 
+        similar_players = (
+            similarity_df[player_sel]
+            .sort_values(ascending=False)
+            .drop(player_sel)
+            .head(5)
+        )
 
+        st.write("### 👥 Jugadors més semblants:")
+        st.write(similar_players)
+
+        games_player = user_item.loc[player_sel]
+        games_player = games_player[games_player > 0].index.tolist()
+
+        similar_users = similar_players.index.tolist()
+        games_similar = user_item.loc[similar_users].sum().sort_values(ascending=False)
+
+        recommendations = games_similar[~games_similar.index.isin(games_player)].head(10)
+
+        st.subheader("✨ Recomanacions de jocs")
+        if recommendations.empty:
+            st.success("🎉 No hi ha recomanacions noves!")
+        else:
+            st.write(recommendations)
