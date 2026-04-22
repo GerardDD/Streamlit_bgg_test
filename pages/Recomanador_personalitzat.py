@@ -122,7 +122,7 @@ for idx, row in sample_games.iterrows():
 # ============================================================
 
 PLAYTIME_WEIGHT = 2.1
-MECHANICS_WEIGHT = 1.8
+MECHANICS_WEIGHT = 1.95
 
 numeric_cols = ["pes", "nota_bgg", "minplayers", "maxplayers", "playingtime"]
 
