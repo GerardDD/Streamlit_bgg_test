@@ -182,9 +182,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-
-
-
 st.title("📚 Ludoteca de dumito")
 
 # --- Carga de CSV ---
@@ -192,9 +189,6 @@ st.header("Llista completa")
 archivo = True  # para pruebas locales
 
 if archivo:
-    #df = pd.read_csv("C:/Users/47173276T/Downloads/collection.csv")
-    #df = pd.read_csv("collection.csv")
-    
     # Eliminem columnes buides
     df = df.dropna(axis=1, how="all")
 
@@ -217,9 +211,6 @@ if archivo:
         "yearpublished":"any_publicació"
     })
 
-    #st.subheader("Contenido del archivo")
-    #st.dataframe(df)
-
     # --- Convertir año a numérico ---
     df["any_publicació"] = pd.to_numeric(df["any_publicació"], errors="coerce")
 
@@ -230,60 +221,47 @@ if archivo:
         labels=["Antiguitat", "Moderna", "Post-Pandèmia"]
     )
 
-# ============================
-# 🔵 FILTRES INTERACTIUS
-# ============================
+    # ============================
+    # 🔵 FILTROS INTERACTIVOS
+    # ============================
 
-st.sidebar.header("Filtres")
+    st.sidebar.header("Filtres")
 
-# Filtro por época
-epocas_sel = st.sidebar.multiselect(
-    "Selecciona epoques:",
-    options=df["epocas"].dropna().unique(),
-    default=df["epocas"].dropna().unique()
-)
+    # Filtro por época
+    epocas_sel = st.sidebar.multiselect(
+        "Selecciona epoques:",
+        options=df["epocas"].dropna().unique(),
+        default=df["epocas"].dropna().unique()
+    )
 
-# Filtro por rango de años
-min_year = int(df["any_publicació"].min(skipna=True))
-max_year = int(df["any_publicació"].max(skipna=True))
+    # Filtro por rango de años
+    min_year = int(df["any_publicació"].min(skipna=True))
+    max_year = int(df["any_publicació"].max(skipna=True))
 
-year_range = st.sidebar.slider(
-    "Rang d'anys:",
-    min_year, max_year, (min_year, max_year)
-)
+    year_range = st.sidebar.slider(
+        "Rang d'anys:",
+        min_year, max_year, (min_year, max_year)
+    )
 
-# Filtro por idioma
-idiomas = df["version_languages"].dropna().unique() if "version_languages" in df.columns else ["Desconegut"]
+    # Filtro por idioma
+    try:
+        idiomas = df["version_languages"].dropna().unique()
+    except:
+        idiomas = ['Desconegut']
+        pass
+    finally:
+        pass
+    idioma_sel = st.sidebar.multiselect(
+        "Idioma:",
+        options=idiomas,
+        default=idiomas
+    )
 
-idioma_sel = st.sidebar.multiselect(
-    "Idioma:",
-    options=idiomas,
-    default=idiomas
-)
-
-# 🔵 NOU FILTRE: Jocs en propietat
-if "own" in df.columns:
-    filtre_own = st.sidebar.checkbox("Només jocs en propietat", value=False)
-else:
-    filtre_own = False
-
-# Aplicar filtres
-df_filtrado = df.copy()
-
-if epocas_sel:
-    df_filtrado = df_filtrado[df_filtrado["epocas"].isin(epocas_sel)]
-
-df_filtrado = df_filtrado[
-    df_filtrado["any_publicació"].between(year_range[0], year_range[1], inclusive="both")
-]
-
-if idioma_sel and metode != "📁 Pujar un CSV manualment":
-    df_filtrado = df_filtrado[df_filtrado["version_languages"].isin(idioma_sel)]
-
-# 🔵 Aplicar filtre de jocs en propietat
-if filtre_own and "own" in df_filtrado.columns:
-    df_filtrado = df_filtrado[df_filtrado["own"] == 1]
-
+    # 🔵 Nou filtre: jocs en propietat
+    if "own" in df.columns:
+        filtre_own = st.sidebar.checkbox("Només jocs en propietat", value=False)
+    else:
+        filtre_own = False
 
     # Aplicar filtros
     df_filtrado = df.copy()
@@ -298,6 +276,9 @@ if filtre_own and "own" in df_filtrado.columns:
     if idioma_sel and metode != "📁 Pujar un CSV manualment" :
         df_filtrado = df_filtrado[df_filtrado["version_languages"].isin(idioma_sel)]
 
+    # Aplicar filtre de jocs en propietat
+    if filtre_own and "own" in df_filtrado.columns:
+        df_filtrado = df_filtrado[df_filtrado["own"] == 1]
 
     st.subheader("La col·lecció")
 
@@ -333,7 +314,6 @@ if filtre_own and "own" in df_filtrado.columns:
             value=int(df_filtrado["num_partides"].sum()) if not df_filtrado.empty else "—"
         )
 
-    # 👉 NUEVO KPI: Año con más juegos
     with col5:
         if not df_filtrado.empty:
             any_mes_jocs = (
@@ -348,7 +328,6 @@ if filtre_own and "own" in df_filtrado.columns:
         else:
             st.metric(label="📅 Any amb més jocs", value="—")
 
-    
     st.dataframe(df_filtrado)
 
     # ============================
@@ -372,7 +351,7 @@ if filtre_own and "own" in df_filtrado.columns:
     fig1.update_traces(
         textposition="inside",
         textinfo="percent+label",
-        pull=[0.05] * len(conteo_epocas)  # pequeño efecto de separación
+        pull=[0.05] * len(conteo_epocas)
     )
 
     fig1.update_layout(
@@ -412,7 +391,6 @@ if filtre_own and "own" in df_filtrado.columns:
 
     st.subheader("🏆 Top 10 jocs més jugats")
 
-    # Ordenar por número de partidas y seleccionar top 10
     top10 = df_filtrado.sort_values("num_partides", ascending=False).head(10)
 
     fig5 = px.bar(
@@ -434,7 +412,7 @@ if filtre_own and "own" in df_filtrado.columns:
     fig5.update_layout(
         xaxis_title="Nombre de partides",
         yaxis_title="Joc",
-        yaxis=dict(autorange="reversed"),  # Para que el más jugado quede arriba
+        yaxis=dict(autorange="reversed"),
         coloraxis_showscale=False,
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)"
@@ -442,18 +420,15 @@ if filtre_own and "own" in df_filtrado.columns:
     fig5 = fix_plotly_colors(fig5)
     st.plotly_chart(fig5, use_container_width=True)
 
-
-
     # ============================
     # 🔵 GRÁFICO 3: Juegos por idioma
     # ============================
+
     if metode != "📁 Pujar un CSV manualment":
         st.subheader("🌍 Jocs per idioma")
 
-        # Checkbox para incluir/excluir "Desconegut" SOLO en el gráfico
         mostrar_desconegut = st.checkbox("Mostrar 'Desconegut' al gràfic", value=False)
 
-        # Filtrado local para el gráfico
         df_idiomas_graf = df_filtrado.copy()
         if not mostrar_desconegut:
             df_idiomas_graf = df_idiomas_graf[df_idiomas_graf["version_languages"] != "Desconegut"]
@@ -469,7 +444,6 @@ if filtre_own and "own" in df_filtrado.columns:
         )
 
         fig3.update_layout(
-            # showlegend=False,
             plot_bgcolor="#FFF4E6",
             paper_bgcolor="#FFF4E6"
         )
@@ -482,7 +456,6 @@ if filtre_own and "own" in df_filtrado.columns:
 
     st.subheader("📌 Relació entre variables i nombre de partides")
 
-    # Selector de variable para el eje X
     opcion_x = st.selectbox(
         "Selecciona la variable per comparar amb nombre de partides:",
         options={
@@ -491,7 +464,6 @@ if filtre_own and "own" in df_filtrado.columns:
         }
     )
 
-    # Crear scatter dinámico
     fig4 = px.scatter(
         df_filtrado,
         x=opcion_x,
@@ -502,7 +474,6 @@ if filtre_own and "own" in df_filtrado.columns:
             opcion_x: opcion_x,
             "num_partides": "Nombre de partides"
         },
-
     )
 
     fig4.update_traces(marker=dict(size=10, opacity=1))
@@ -521,12 +492,10 @@ if filtre_own and "own" in df_filtrado.columns:
 
     st.subheader("😅 Llista de la vergonya (jocs sense jugar)")
 
-    # Checkbox para incluir/excluir expansiones
     mostrar_expansions = st.checkbox("Mostrar expansions a la llista", value=False)
 
     df_vergonya = df[df["num_partides"] == 0].copy()
 
-    # Filtrar expansiones si el checkbox está desmarcado
     if not mostrar_expansions:
         df_vergonya = df_vergonya[df_vergonya["itemtype"] != "expansion"]
 
@@ -545,31 +514,3 @@ if filtre_own and "own" in df_filtrado.columns:
     # 🔵 MISSATGES DELS USUARIS
     # ============================
 
-    st.subheader("💬 Deixa un missatge (NO OPERATIU ENCARA)")
-
-    # Inicializar lista de mensajes en la sesión
-    if "missatges" not in st.session_state:
-        st.session_state.missatges = []
-
-    # Caja de texto
-    nou_missatge = st.text_area("Escriu el teu missatge aquí:")
-
-    # Botón para enviar
-    if st.button("Enviar missatge"):
-        if nou_missatge.strip():
-            st.session_state.missatges.append(nou_missatge.strip())
-            st.success("Missatge afegit!")
-        else:
-            st.warning("El missatge no pot estar buit.")
-
-    # Mostrar mensajes enviados
-    if st.session_state.missatges:
-        st.write("### 📜 Missatges enviats:")
-        for idx, msg in enumerate(st.session_state.missatges, 1):
-            st.write(f"**{idx}.** {msg}")
-
-
-
-
-else:
-    st.info("Sube un CSV para generar el dashboard.")
