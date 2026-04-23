@@ -135,7 +135,7 @@ st.subheader("⚙️ Opcions del recomanador")
 filter_owned = st.checkbox("Només mostrar jocs que tinc en propietat", value=False)
 
 st.header("⭐ Avalua alguns jocs")
-st.subheader("⚙️ Puntua del 1 al 10 fins a quin punt s'ajusten al que estàs buscant")
+st.subheader("🚥 Puntua del 1 al 10 fins a quin punt s'ajusten al que estàs buscant")
 if "sample_games" not in st.session_state:
     st.session_state.sample_games = df.sample(10)[
         ["nom_del_joc", "pes", "nota_bgg", "minplayers", "maxplayers", "Mecànica_principal"]
