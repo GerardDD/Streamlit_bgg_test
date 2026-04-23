@@ -78,11 +78,6 @@ if "own" not in df.columns:
 else:
     df["own"] = pd.to_numeric(df["own"], errors="coerce").fillna(0).astype(int)
 
-# ============================================================
-# CÀRREGA DE MECÀNIQUES — només es fa UNA vegada per sessió
-# ============================================================
-
-
 
 # ============================================================
 # CÀRREGA DE MECÀNIQUES DES DE CACHÉ LOCAL
@@ -119,13 +114,31 @@ df = pd.concat([df, mec_cols], axis=1)
 
 st.header("🧩 Preferències del jugador")
 
-pes_pref = st.slider("Pes preferit (complexitat):", 0.0, 5.0, 2.5, 0.1)
-nota_pref = st.slider("Nota mínima BGG:", 0.0, 10.0, 6.5, 0.1)
-num_jugadors = st.slider("Nombre de jugadors preferit:", 1, 10, 3)
-durada_pref = st.slider("Durada preferida (minuts):", 10, 300, 60, 5)
+
+pes_pref = st.slider("Pes preferit (complexitat):", 0.0, 5.0, 
+    st.session_state.get("pes_pref", 2.5), 0.1, key="pes_pref")
+nota_pref = st.slider("Nota mínima BGG:", 0.0, 10.0, 
+    st.session_state.get("nota_pref", 6.5), 0.1, key="nota_pref")
+num_jugadors = st.slider("Nombre de jugadors preferit:", 1, 10, 
+    st.session_state.get("num_jugadors", 3), key="num_jugadors")
+durada_pref = st.slider("Durada preferida (minuts):", 10, 300, 
+    st.session_state.get("durada_pref", 60), 5, key="durada_pref")
 
 mecaniques = ["Qualsevol"] + all_mec_names
-mecanica_pref = st.selectbox("Mecànica preferida:", mecaniques)
+mecanica_pref = st.selectbox("Mecànica preferida:", mecaniques,
+    index=mecaniques.index(st.session_state.get("mecanica_pref", "Qualsevol")) 
+    if st.session_state.get("mecanica_pref", "Qualsevol") in mecaniques else 0,
+    key="mecanica_pref")
+
+if st.button("↩️ Restablir preferències per defecte"):
+    st.session_state["pes_pref"] = 2.5
+    st.session_state["nota_pref"] = 6.5
+    st.session_state["num_jugadors"] = 3
+    st.session_state["durada_pref"] = 60
+    st.session_state["mecanica_pref"] = "Qualsevol"
+    st.rerun()
+
+
 
 # ============================================================
 # 2️⃣ USER RATINGS FOR SAMPLE GAMES
