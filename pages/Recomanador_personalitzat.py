@@ -256,7 +256,7 @@ df_filtered = df[
 
 if filter_owned:
     df_filtered = df_filtered[df_filtered["own"] == 1]
-    df_filtered = df_filtered["itemtype"] != "expansion"]
+    df_filtered = df_filtered[df_filtered["itemtype"] != "expansion"]
 recommendations = df_filtered.sort_values("similarity", ascending=False).head(50)
 
 # ============================================================
