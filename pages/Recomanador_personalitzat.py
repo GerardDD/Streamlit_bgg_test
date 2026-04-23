@@ -253,9 +253,10 @@ df_filtered = df[
     (df["maxplayers"] >= num_jugadors)
 ]
 
+
 if filter_owned:
     df_filtered = df_filtered[df_filtered["own"] == 1]
-
+    df_filtered = df_filtered["itemtype"] != "expansion"]
 recommendations = df_filtered.sort_values("similarity", ascending=False).head(50)
 
 # ============================================================
