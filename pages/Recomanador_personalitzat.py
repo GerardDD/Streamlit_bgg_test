@@ -21,11 +21,18 @@ BGG_CACHE_FILE = "pages/bgg_mechanics_cache.csv"
 
 def load_mechanics_cache() -> dict:
     if os.path.exists(BGG_CACHE_FILE):
-        cache_df = pd.read_csv(BGG_CACHE_FILE)
-        return dict(zip(
-            cache_df["objectid"].astype(int),
-            cache_df["mechanics"].apply(eval)
-        ))
+        try:
+            cache_df = pd.read_csv(BGG_CACHE_FILE)
+            if cache_df.empty or "objectid" not in cache_df.columns or "mechanics" not in cache_df.columns:
+                return {}
+            return dict(zip(
+                cache_df["objectid"].astype(int),
+                cache_df["mechanics"].apply(eval)
+            ))
+        except Exception:
+            # Fitxer corrupte o buit — l'esborrem i comencem de nou
+            os.remove(BGG_CACHE_FILE)
+            return {}
     return {}
 
 def fetch_mechanics_for_ids(object_ids: list, existing_cache: dict) -> dict:
