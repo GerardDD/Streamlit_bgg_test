@@ -4,8 +4,6 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics.pairwise import cosine_similarity
 import os
-import time
-import xml.etree.ElementTree as ET
 import requests
 from bs4 import BeautifulSoup
 import re
@@ -20,60 +18,22 @@ st.title("🎯 Recomanador personalitzat de jocs")
 BGG_CACHE_FILE = "pages/bgg_mechanics_cache.csv"
 
 def load_mechanics_cache() -> dict:
-    if os.path.exists(BGG_CACHE_FILE):
-        try:
-            cache_df = pd.read_csv(BGG_CACHE_FILE)
-            if cache_df.empty or "objectid" not in cache_df.columns or "mechanics" not in cache_df.columns:
-                return {}
-            return dict(zip(
-                cache_df["objectid"].astype(int),
-                cache_df["mechanics"].apply(eval)
-            ))
-        except Exception:
-            # Fitxer corrupte o buit — l'esborrem i comencem de nou
-            os.remove(BGG_CACHE_FILE)
-            return {}
-    return {}
+    if not os.path.exists(BGG_CACHE_FILE):
+        st.error("⚠️ No s'ha trobat bgg_mechanics_cache.csv al repositori!")
+        st.stop()
+    try:
+        cache_df = pd.read_csv(BGG_CACHE_FILE)
+        if cache_df.empty or "objectid" not in cache_df.columns or "mechanics" not in cache_df.columns:
+            st.error("⚠️ El fitxer bgg_mechanics_cache.csv està buit o mal format!")
+            st.stop()
+        return dict(zip(
+            cache_df["objectid"].astype(int),
+            cache_df["mechanics"].apply(eval)
+        ))
+    except Exception as e:
+        st.error(f"⚠️ Error llegint bgg_mechanics_cache.csv: {e}")
+        st.stop()
 
-def fetch_mechanics_for_ids(object_ids: list, existing_cache: dict) -> dict:
-    cache = dict(existing_cache)
-    ids_to_fetch = [oid for oid in object_ids if oid not in cache]
-
-    if not ids_to_fetch:
-        return cache
-
-    batch_size = 20
-    batches = [ids_to_fetch[i:i+batch_size] for i in range(0, len(ids_to_fetch), batch_size)]
-    progress = st.progress(0, text="Carregant mecàniques de BGG...")
-
-    for i, batch in enumerate(batches):
-        ids_str = ",".join(str(oid) for oid in batch)
-        url = f"https://boardgamegeek.com/xmlapi2/thing?id={ids_str}&type=boardgame"
-        try:
-            r = requests.get(url, timeout=15)
-            if r.status_code == 200:
-                root = ET.fromstring(r.content)
-                for item in root.findall("item"):
-                    oid = int(item.get("id"))
-                    mechanics = [
-                        link.get("value")
-                        for link in item.findall("link")
-                        if link.get("type") == "boardgamemechanic"
-                    ]
-                    cache[oid] = mechanics
-            elif r.status_code == 429:
-                time.sleep(5)
-        except Exception:
-            pass
-        time.sleep(0.5)
-        progress.progress((i + 1) / len(batches), text=f"Carregant mecàniques... ({i+1}/{len(batches)})")
-
-    progress.empty()
-
-    cache_rows = [{"objectid": k, "mechanics": str(v)} for k, v in cache.items()]
-    pd.DataFrame(cache_rows).to_csv(BGG_CACHE_FILE, index=False)
-
-    return cache
 
 # ============================================================
 # LOAD COLLECTION DATA
@@ -122,18 +82,15 @@ else:
 # CÀRREGA DE MECÀNIQUES — només es fa UNA vegada per sessió
 # ============================================================
 
-if "mechanics_cache" not in st.session_state:
-    if "objectid" in df.columns:
-        df_ids = df.copy()
-        df_ids["objectid"] = pd.to_numeric(df_ids["objectid"], errors="coerce")
-        df_ids = df_ids.dropna(subset=["objectid"])
-        object_ids = df_ids["objectid"].astype(int).tolist()
 
-        disc_cache = load_mechanics_cache()
-        full_cache = fetch_mechanics_for_ids(object_ids, disc_cache)
-        st.session_state["mechanics_cache"] = full_cache
-    else:
-        st.session_state["mechanics_cache"] = {}
+
+# ============================================================
+# CÀRREGA DE MECÀNIQUES DES DE CACHÉ LOCAL
+# ============================================================
+
+if "mechanics_cache" not in st.session_state:
+    disc_cache = load_mechanics_cache()
+    st.session_state["mechanics_cache"] = disc_cache
 
 mechanics_cache = st.session_state["mechanics_cache"]
 
