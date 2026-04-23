@@ -274,6 +274,93 @@ else:
     )
 
 # ============================================================
+# 6️⃣ CLUSTERING DE JOCS
+# ============================================================
+
+from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
+import plotly.express as px
+
+st.divider()
+st.header("🔬 Agrupació de jocs per similitud")
+
+n_clusters = st.slider("Nombre de grups (clusters):", 2, 10, 5, key="n_clusters")
+
+@st.cache_data(show_spinner=False)
+def compute_clusters(n: int, matrix_hash: str) -> pd.DataFrame:
+    return None  # placeholder, la lògica real és a sota
+
+# Construir matriu de features per clustering (tots els jocs, no només filtrats)
+cluster_features = df[numeric_cols].copy()
+cluster_features = cluster_features.fillna(cluster_features.median())
+
+# Afegir mecàniques
+mec_matrix = mec_cols.values
+
+# Normalitzar numèrics
+scaler_cluster = StandardScaler()
+X_cluster_numeric = scaler_cluster.fit_transform(cluster_features)
+X_cluster = np.hstack([X_cluster_numeric, mec_matrix * 0.5])
+
+# KMeans
+kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+cluster_labels = kmeans.fit_predict(X_cluster)
+df_plot = df[["nom_del_joc", "pes", "nota_bgg", "playingtime", "Mecànica_principal", "minplayers", "maxplayers"]].copy()
+df_plot["Cluster"] = cluster_labels.astype(str)
+
+# PCA per reduir a 2D per visualitzar
+pca = PCA(n_components=2, random_state=42)
+coords = pca.fit_transform(X_cluster)
+df_plot["PC1"] = coords[:, 0]
+df_plot["PC2"] = coords[:, 1]
+
+# Variança explicada
+var_explicada = pca.explained_variance_ratio_
+st.caption(f"Els dos eixos expliquen el {var_explicada[0]*100:.1f}% + {var_explicada[1]*100:.1f}% = {sum(var_explicada)*100:.1f}% de la variabilitat total")
+
+fig_cluster = px.scatter(
+    df_plot,
+    x="PC1",
+    y="PC2",
+    color="Cluster",
+    hover_name="nom_del_joc",
+    hover_data={
+        "pes": True,
+        "nota_bgg": True,
+        "playingtime": True,
+        "Mecànica_principal": True,
+        "PC1": False,
+        "PC2": False
+    },
+    title=f"Agrupació de jocs en {n_clusters} clusters (PCA 2D)",
+    color_discrete_sequence=px.colors.qualitative.Set2,
+)
+
+fig_cluster.update_traces(marker=dict(size=8, opacity=0.8))
+fig_cluster.update_layout(
+    plot_bgcolor="rgba(0,0,0,0)",
+    paper_bgcolor="rgba(0,0,0,0)",
+    font=dict(color="#000000"),
+    legend_title_text="Grup",
+    xaxis=dict(showgrid=True, gridcolor="rgba(0,0,0,0.1)"),
+    yaxis=dict(showgrid=True, gridcolor="rgba(0,0,0,0.1)"),
+)
+
+st.plotly_chart(fig_cluster, use_container_width=True)
+
+# Taula resum per cluster
+st.subheader("📊 Característiques mitjanes per grup")
+cluster_summary = df_plot.groupby("Cluster").agg(
+    Jocs=("nom_del_joc", "count"),
+    Pes_mitjà=("pes", "mean"),
+    Nota_BGG_mitjana=("nota_bgg", "mean"),
+    Durada_mitjana=("playingtime", "mean"),
+).round(2).reset_index()
+cluster_summary.columns = ["Grup", "Nº Jocs", "Pes mitjà", "Nota BGG", "Durada (min)"]
+st.dataframe(cluster_summary, use_container_width=True)
+
+
+# ============================================================
 # 5️⃣ MISUT MEEPLE - RESENYA DEL JOC MÉS RECOMANAT
 # ============================================================
 
