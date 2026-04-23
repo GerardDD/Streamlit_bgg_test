@@ -4,6 +4,71 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics.pairwise import cosine_similarity
 
+import time
+import xml.etree.ElementTree as ET
+
+BGG_CACHE_FILE = "pages/bgg_mechanics_cache.csv"
+
+@st.cache_data(show_spinner=False)
+def load_mechanics_cache() -> dict:
+    """Carrega el fitxer de caché de mecàniques si existeix."""
+    if os.path.exists(BGG_CACHE_FILE):
+        cache_df = pd.read_csv(BGG_CACHE_FILE)
+        return dict(zip(cache_df["objectid"], cache_df["mechanics"].apply(eval)))
+    return {}
+
+def fetch_mechanics_for_ids(object_ids: list, existing_cache: dict) -> dict:
+    """
+    Consulta la BGG API per obtenir totes les mecàniques de cada joc.
+    Fa servir caché per no repetir crides. Respecta el rate limit de BGG.
+    Es poden enviar fins a 20 IDs per crida.
+    """
+    cache = dict(existing_cache)
+    ids_to_fetch = [oid for oid in object_ids if oid not in cache]
+
+    if not ids_to_fetch:
+        return cache
+
+    # BGG allows up to 20 IDs per request
+    batch_size = 20
+    batches = [ids_to_fetch[i:i+batch_size] for i in range(0, len(ids_to_fetch), batch_size)]
+
+    progress = st.progress(0, text="Carregant mecàniques de BGG...")
+    total = len(batches)
+
+    for i, batch in enumerate(batches):
+        ids_str = ",".join(str(oid) for oid in batch)
+        url = f"https://boardgamegeek.com/xmlapi2/thing?id={ids_str}&type=boardgame"
+
+        try:
+            r = requests.get(url, timeout=15)
+            if r.status_code == 200:
+                root = ET.fromstring(r.content)
+                for item in root.findall("item"):
+                    oid = int(item.get("id"))
+                    mechanics = [
+                        link.get("value")
+                        for link in item.findall("link")
+                        if link.get("type") == "boardgamemechanic"
+                    ]
+                    cache[oid] = mechanics
+            elif r.status_code == 429:
+                time.sleep(5)  # rate limit
+        except Exception:
+            pass
+
+        time.sleep(0.5)  # respectar rate limit BGG
+        progress.progress((i + 1) / total, text=f"Carregant mecàniques... ({i+1}/{total})")
+
+    progress.empty()
+
+    # Guardar caché a disc
+    cache_rows = [{"objectid": k, "mechanics": str(v)} for k, v in cache.items()]
+    pd.DataFrame(cache_rows).to_csv(BGG_CACHE_FILE, index=False)
+
+    return cache
+
+
 st.set_page_config(layout="wide")
 
 st.title("🎯 Recomanador personalitzat de jocs")
@@ -55,8 +120,36 @@ if "own" not in df.columns:
     st.warning("⚠️ El CSV no té la columna 'own'. Es crearà amb valor 0.")
     df["own"] = 0
 
-# One-hot encoding
-mec_cols = pd.get_dummies(df["Mecànica_principal"], prefix="mec")
+# ============================================================
+# CÀRREGA DE MECÀNIQUES COMPLETES DES DE BGG API
+# ============================================================
+
+import os
+
+if "objectid" in df.columns:
+    df["objectid"] = pd.to_numeric(df["objectid"], errors="coerce").dropna().astype(int)
+    object_ids = df["objectid"].dropna().astype(int).tolist()
+
+    with st.spinner("Carregant mecàniques des de BGG (primera vegada pot trigar uns minuts)..."):
+        mechanics_cache = load_mechanics_cache()
+        mechanics_cache = fetch_mechanics_for_ids(object_ids, mechanics_cache)
+
+    # Assignar mecàniques a cada joc
+    df["all_mechanics"] = df["objectid"].map(
+        lambda oid: mechanics_cache.get(int(oid), []) if pd.notna(oid) else []
+    )
+else:
+    st.warning("⚠️ No s'ha trobat la columna 'objectid'. S'usarà només la mecànica principal.")
+    df["all_mechanics"] = df["Mecànica_principal"].apply(lambda x: [x])
+
+# One-hot encoding amb totes les mecàniques
+all_mec_names = sorted(set(m for mecs in df["all_mechanics"] for m in mecs))
+mec_data = {}
+for mec in all_mec_names:
+    col = f"mec_{mec.replace(' ', '_')}"
+    mec_data[col] = df["all_mechanics"].apply(lambda mecs: 1 if mec in mecs else 0)
+
+mec_cols = pd.DataFrame(mec_data, index=df.index)
 df = pd.concat([df, mec_cols], axis=1)
 
 # ============================================================
@@ -73,7 +166,7 @@ num_jugadors = st.slider("Nombre de jugadors preferit:", 1, 10, 3)
 durada_pref = st.slider("Durada preferida (minuts):", 10, 300, 60, 5)
 
 # Mecànica preferida
-mecaniques = ["Qualsevol"] + sorted(df["Mecànica_principal"].unique())
+mecaniques = ["Qualsevol"] + sorted(all_mec_names)
 mecanica_pref = st.selectbox("Mecànica preferida:", mecaniques)
 
 
@@ -168,7 +261,7 @@ pref_numeric_vector[-1] *= PLAYTIME_WEIGHT
 # Mecànica explícita
 user_mec_vector = np.zeros(len(mec_cols.columns))
 if mecanica_pref != "Qualsevol":
-    colname = f"mec_{mecanica_pref}"
+    colname = f"mec_{mecanica_pref.replace(' ', '_')}"
     if colname in mec_cols.columns:
         user_mec_vector[mec_cols.columns.get_loc(colname)] = 1
 else:
