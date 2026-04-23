@@ -190,8 +190,8 @@ for idx, row in sample_games.iterrows():
 # 3️⃣ BUILD USER PROFILE VECTOR
 # ============================================================
 
-PLAYTIME_WEIGHT = 2.1
-MECHANICS_WEIGHT = 1.95
+PLAYTIME_WEIGHT = 2.0
+MECHANICS_WEIGHT = 2.3
 
 numeric_cols = ["pes", "nota_bgg", "minplayers", "maxplayers", "playingtime"]
 
