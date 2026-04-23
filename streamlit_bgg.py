@@ -525,9 +525,9 @@ if archivo:
             "nota_bgg": "Nota BGG"
         }
     )
-
+    df_scatter = df_filtrado[df_filtrado["num_partides"] > 0]
     fig4 = px.scatter(
-        df_filtrado,
+        df_scatter,
         x=opcion_x,
         y="num_partides",
         hover_name="nom_del_joc",
