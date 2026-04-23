@@ -114,6 +114,14 @@ df = pd.concat([df, mec_cols], axis=1)
 
 st.header("🧩 Preferències del jugador")
 
+# Botó de reset
+if st.button("🔄 Restablir preferències per defecte"):
+    st.session_state["pes_pref"] = 2.5
+    st.session_state["nota_pref"] = 6.5
+    st.session_state["num_jugadors"] = 3
+    st.session_state["durada_pref"] = 60
+    st.session_state["mecanica_pref"] = "Qualsevol"
+    st.rerun()
 
 pes_pref = st.slider("Pes preferit (complexitat):", 0.0, 5.0, 
     st.session_state.get("pes_pref", 2.5), 0.1, key="pes_pref")
