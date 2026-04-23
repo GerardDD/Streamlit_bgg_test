@@ -51,7 +51,7 @@ df.columns = df.columns.str.strip()
 df = df.rename(columns={
     "objectname": "nom_del_joc",
     "avgweight": "pes",
-    "average": "nota_bgg",
+    "average":   "nota_bgg",
     "yearpublished": "any_publicació"
 })
 
@@ -60,16 +60,16 @@ df = df.dropna(subset=required_cols)
 
 df["comment"] = df["comment"].replace(r"^\s*$", "No informat", regex=True)
 df["comment"] = df["comment"].fillna("No informat")
-df["comment"] = df["comment"].replace("Selecció accions", "Selecció d'accions", regex=True)
-df["comment"] = df["comment"].replace("Car-driven", "Card-driven", regex=True)
-df["comment"] = df["comment"].replace("Col·locació daus", "Col·locació de daus", regex=True)
-df["comment"] = df["comment"].replace("Construcció motor", "Construcció de motor", regex=True)
-df["comment"] = df["comment"].replace("Draft pùblic", "Draft públic", regex=True)
-df["comment"] = df["comment"].replace("Gestió de la mà", "Gestió de mà", regex=True)
-df["comment"] = df["comment"].replace("Pseudo-abstracte", "Pseudo-Abstracte", regex=True)
-df["comment"] = df["comment"].replace("Pseudo-wargame", "Pseudo-Wargame", regex=True)
-df["comment"] = df["comment"].replace("Pseudo-wargames", "Pseudo-Wargame", regex=True)
-df["comment"] = df["comment"].replace("Pseudo-Wargames", "Pseudo-Wargame", regex=True)
+df["comment"] = df["comment"].replace("Selecció accions",   "Selecció d'accions", regex=True)
+df["comment"] = df["comment"].replace("Car-driven",         "Card-driven",        regex=True)
+df["comment"] = df["comment"].replace("Col·locació daus",   "Col·locació de daus",regex=True)
+df["comment"] = df["comment"].replace("Construcció motor",  "Construcció de motor",regex=True)
+df["comment"] = df["comment"].replace("Draft pùblic",       "Draft públic",       regex=True)
+df["comment"] = df["comment"].replace("Gestió de la mà",   "Gestió de mà",       regex=True)
+df["comment"] = df["comment"].replace("Pseudo-abstracte",   "Pseudo-Abstracte",   regex=True)
+df["comment"] = df["comment"].replace("Pseudo-wargame",     "Pseudo-Wargame",     regex=True)
+df["comment"] = df["comment"].replace("Pseudo-wargames",    "Pseudo-Wargame",     regex=True)
+df["comment"] = df["comment"].replace("Pseudo-Wargames",    "Pseudo-Wargame",     regex=True)
 df = df.rename(columns={"comment": "Mecànica_principal"})
 
 if "own" not in df.columns:
@@ -78,6 +78,29 @@ if "own" not in df.columns:
 else:
     df["own"] = pd.to_numeric(df["own"], errors="coerce").fillna(0).astype(int)
 
+# ============================================================
+# MILLORA 1 — numplays i rating personal com a features
+# ============================================================
+# numplays: quantes vegades has jugat → senyal implícita de preferència
+# rating:   la teva valoració personal (columna "rating" del CSV de BGG)
+#           diferent de "average" que és la mitjana de la comunitat
+
+if "numplays" in df.columns:
+    df["numplays"] = pd.to_numeric(df["numplays"], errors="coerce").fillna(0)
+    # Transformació log per reduir l'efecte d'outliers (1 partida vs 50)
+    df["log_numplays"] = np.log1p(df["numplays"])
+else:
+    df["numplays"]     = 0
+    df["log_numplays"] = 0.0
+
+if "rating" in df.columns:
+    # La columna "rating" del CSV de BGG és la teva valoració personal
+    # Pot tenir valors "N/A" o buits per jocs no valorats
+    df["rating_personal"] = pd.to_numeric(df["rating"], errors="coerce")
+    has_personal_ratings  = df["rating_personal"].notna().sum()
+else:
+    df["rating_personal"] = np.nan
+    has_personal_ratings  = 0
 
 # ============================================================
 # CÀRREGA DE MECÀNIQUES DES DE CACHÉ LOCAL
@@ -89,16 +112,15 @@ if "mechanics_cache" not in st.session_state:
 
 mechanics_cache = st.session_state["mechanics_cache"]
 
-# Assignar mecàniques a cada fila
 if "objectid" in df.columns:
-    df["objectid"] = pd.to_numeric(df["objectid"], errors="coerce")
+    df["objectid"]      = pd.to_numeric(df["objectid"], errors="coerce")
     df["all_mechanics"] = df["objectid"].map(
         lambda oid: mechanics_cache.get(int(oid), []) if pd.notna(oid) else []
     )
 else:
     df["all_mechanics"] = df["Mecànica_principal"].apply(lambda x: [x])
 
-# One-hot encoding
+# One-hot encoding mecàniques
 all_mec_names = sorted(set(m for mecs in df["all_mechanics"] for m in mecs if m))
 
 mec_data = {
@@ -114,39 +136,30 @@ df = pd.concat([df, mec_cols], axis=1)
 
 st.header("🧩 Preferències del jugador")
 
-# Botó de reset
-if st.button("🔄 Restablir preferències per defecte"):
-    st.session_state["pes_pref"] = 2.5
-    st.session_state["nota_pref"] = 6.5
-    st.session_state["num_jugadors"] = 3
-    st.session_state["durada_pref"] = 60
+if st.button("↩️ Restablir preferències per defecte"):
+    st.session_state["pes_pref"]      = 2.5
+    st.session_state["nota_pref"]     = 6.5
+    st.session_state["num_jugadors"]  = 3
+    st.session_state["durada_pref"]   = 60
     st.session_state["mecanica_pref"] = "Qualsevol"
     st.rerun()
 
-pes_pref = st.slider("Pes preferit (complexitat):", 0.0, 5.0, 
+pes_pref     = st.slider("Pes preferit (complexitat):", 0.0, 5.0,
     st.session_state.get("pes_pref", 2.5), 0.1, key="pes_pref")
-nota_pref = st.slider("Nota mínima BGG:", 0.0, 10.0, 
+nota_pref    = st.slider("Nota mínima BGG:", 0.0, 10.0,
     st.session_state.get("nota_pref", 6.5), 0.1, key="nota_pref")
-num_jugadors = st.slider("Nombre de jugadors preferit:", 1, 10, 
+num_jugadors = st.slider("Nombre de jugadors preferit:", 1, 10,
     st.session_state.get("num_jugadors", 3), key="num_jugadors")
-durada_pref = st.slider("Durada preferida (minuts):", 10, 300, 
+durada_pref  = st.slider("Durada preferida (minuts):", 10, 300,
     st.session_state.get("durada_pref", 60), 5, key="durada_pref")
 
-mecaniques = ["Qualsevol"] + all_mec_names
-mecanica_pref = st.selectbox("Mecànica preferida:", mecaniques,
-    index=mecaniques.index(st.session_state.get("mecanica_pref", "Qualsevol")) 
-    if st.session_state.get("mecanica_pref", "Qualsevol") in mecaniques else 0,
-    key="mecanica_pref")
-
-#if st.button("↩️ Restablir preferències per defecte"):
- #   st.session_state["pes_pref"] = 2.5
-  #  st.session_state["nota_pref"] = 6.5
-   # st.session_state["num_jugadors"] = 3
-    #st.session_state["durada_pref"] = 60
-    #st.session_state["mecanica_pref"] = "Qualsevol"
-    #st.rerun()
-
-
+mecaniques   = ["Qualsevol"] + all_mec_names
+mecanica_pref = st.selectbox(
+    "Mecànica preferida:", mecaniques,
+    index=mecaniques.index(st.session_state.get("mecanica_pref", "Qualsevol"))
+          if st.session_state.get("mecanica_pref", "Qualsevol") in mecaniques else 0,
+    key="mecanica_pref"
+)
 
 # ============================================================
 # 2️⃣ USER RATINGS FOR SAMPLE GAMES
@@ -157,6 +170,7 @@ filter_owned = st.checkbox("Només mostrar jocs que tinc en propietat", value=Fa
 
 st.header("⭐ Avalua alguns jocs")
 st.subheader("🚥 Puntua del 1 al 10 fins a quin punt s'ajusten al que estàs buscant")
+
 if "sample_games" not in st.session_state:
     st.session_state.sample_games = df.sample(10)[
         ["nom_del_joc", "pes", "nota_bgg", "minplayers", "maxplayers", "Mecànica_principal"]
@@ -168,7 +182,6 @@ if st.button("🔄 Tornar a mostrar altres jocs"):
     ]
 
 sample_games = st.session_state.sample_games
-
 ignore_flags = {}
 user_ratings = {}
 
@@ -177,8 +190,7 @@ for idx, row in sample_games.iterrows():
     with col1:
         rating = st.slider(
             f"Valoració per **{row['nom_del_joc']}**:",
-            1, 10, 5,
-            key=f"rating_{row['nom_del_joc']}"
+            1, 10, 5, key=f"rating_{row['nom_del_joc']}"
         )
     with col2:
         ignore = st.checkbox("Ignorar", key=f"ignore_{row['nom_del_joc']}")
@@ -190,42 +202,80 @@ for idx, row in sample_games.iterrows():
 # 3️⃣ BUILD USER PROFILE VECTOR
 # ============================================================
 
-PLAYTIME_WEIGHT = 2.0
+PLAYTIME_WEIGHT  = 2.0
 MECHANICS_WEIGHT = 2.3
+NUMPLAYS_WEIGHT  = 1.5   # pes per log_numplays
+RATING_WEIGHT    = 2.0   # pes per rating personal
 
+# Columnes numèriques base
 numeric_cols = ["pes", "nota_bgg", "minplayers", "maxplayers", "playingtime"]
 
-scaler = StandardScaler()
-X_numeric = scaler.fit_transform(df[numeric_cols])
-X_numeric[:, -1] *= PLAYTIME_WEIGHT
-X = np.hstack([X_numeric, mec_cols.values * MECHANICS_WEIGHT])
+# Afegir log_numplays sempre
+numeric_cols_extended = numeric_cols + ["log_numplays"]
 
-rated_games = df[df["nom_del_joc"].isin([g for g in user_ratings if not ignore_flags[g]])].copy()
+# Afegir rating_personal si existeix i té dades
+use_personal_rating = has_personal_ratings > 0
+if use_personal_rating:
+    # Imputem la mediana als jocs sense valoració personal
+    median_rating = df["rating_personal"].median()
+    df["rating_personal_imp"] = df["rating_personal"].fillna(median_rating)
+    numeric_cols_extended = numeric_cols_extended + ["rating_personal_imp"]
+    st.caption(
+        f"ℹ️ S'han trobat **{has_personal_ratings}** valoracions personals teves al CSV. "
+        f"S'usaran com a feature addicional per millorar les recomanacions."
+    )
+
+scaler   = StandardScaler()
+X_num    = scaler.fit_transform(df[numeric_cols_extended])
+
+# Aplicar pesos específics
+playtime_idx = numeric_cols_extended.index("playingtime")
+numplays_idx = numeric_cols_extended.index("log_numplays")
+X_num[:, playtime_idx] *= PLAYTIME_WEIGHT
+X_num[:, numplays_idx] *= NUMPLAYS_WEIGHT
+if use_personal_rating:
+    rating_idx = numeric_cols_extended.index("rating_personal_imp")
+    X_num[:, rating_idx] *= RATING_WEIGHT
+
+X = np.hstack([X_num, mec_cols.values * MECHANICS_WEIGHT])
+
+# Jocs valorats per l'usuari als sliders
+rated_names  = [g for g in user_ratings if not ignore_flags[g]]
+rated_games  = df[df["nom_del_joc"].isin(rated_names)].copy()
 rated_games["user_rating"] = rated_games["nom_del_joc"].map(user_ratings)
 
 user_profile_numeric = np.average(
-    scaler.transform(rated_games[numeric_cols]),
+    scaler.transform(rated_games[numeric_cols_extended]),
     axis=0,
     weights=rated_games["user_rating"]
 )
+# Re-aplicar pesos
+user_profile_numeric[playtime_idx] *= PLAYTIME_WEIGHT
+user_profile_numeric[numplays_idx] *= NUMPLAYS_WEIGHT
+if use_personal_rating:
+    user_profile_numeric[rating_idx] *= RATING_WEIGHT
 
-rated_mec_matrix = mec_cols.loc[rated_games.index].values
+rated_mec_matrix     = mec_cols.loc[rated_games.index].values
 user_mec_from_ratings = np.average(
-    rated_mec_matrix,
-    axis=0,
-    weights=rated_games["user_rating"]
+    rated_mec_matrix, axis=0, weights=rated_games["user_rating"]
 )
 
-pref_df = pd.DataFrame([{
-    "pes": pes_pref,
-    "nota_bgg": nota_pref,
-    "minplayers": num_jugadors,
-    "maxplayers": num_jugadors,
-    "playingtime": durada_pref
-}])[numeric_cols]
+# Vector de preferències explícites
+pref_row = {
+    "pes": pes_pref, "nota_bgg": nota_pref,
+    "minplayers": num_jugadors, "maxplayers": num_jugadors,
+    "playingtime": durada_pref,
+    "log_numplays": 0.0,   # neutre per preferències explícites
+}
+if use_personal_rating:
+    pref_row["rating_personal_imp"] = median_rating  # neutre
 
+pref_df             = pd.DataFrame([pref_row])[numeric_cols_extended]
 pref_numeric_vector = scaler.transform(pref_df)[0]
-pref_numeric_vector[-1] *= PLAYTIME_WEIGHT
+pref_numeric_vector[playtime_idx] *= PLAYTIME_WEIGHT
+pref_numeric_vector[numplays_idx] *= NUMPLAYS_WEIGHT
+if use_personal_rating:
+    pref_numeric_vector[rating_idx] *= RATING_WEIGHT
 
 user_mec_vector = np.zeros(len(mec_cols.columns))
 if mecanica_pref != "Qualsevol":
@@ -244,19 +294,19 @@ user_profile = np.concatenate([
 # 4️⃣ COMPUTE SIMILARITY AND RECOMMEND
 # ============================================================
 
-similarities = cosine_similarity([user_profile], X)[0]
+similarities   = cosine_similarity([user_profile], X)[0]
 df["similarity"] = similarities
 
 df_filtered = df[
-    (df["nota_bgg"] >= nota_pref) &
-    (df["minplayers"] <= num_jugadors) &
-    (df["maxplayers"] >= num_jugadors)
+    (df["nota_bgg"]    >= nota_pref) &
+    (df["minplayers"]  <= num_jugadors) &
+    (df["maxplayers"]  >= num_jugadors)
 ]
-
 
 if filter_owned:
     df_filtered = df_filtered[df_filtered["own"] == 1]
     df_filtered = df_filtered[df_filtered["itemtype"] != "expansion"]
+
 recommendations = df_filtered.sort_values("similarity", ascending=False).head(50)
 
 # ============================================================
@@ -268,98 +318,154 @@ st.subheader("✨ Recomanacions de jocs")
 if recommendations.empty:
     st.success("🎉 No hi ha recomanacions noves!")
 else:
-    st.write(
-        recommendations[
-            ["nom_del_joc", "similarity", "Mecànica_principal", "pes", "nota_bgg", "playingtime", "minplayers", "maxplayers"]
-        ]
-    )
+    display_cols = ["nom_del_joc", "similarity", "Mecànica_principal",
+                    "pes", "nota_bgg", "playingtime", "minplayers", "maxplayers", "numplays"]
+    if use_personal_rating:
+        display_cols.append("rating_personal")
+    st.write(recommendations[[c for c in display_cols if c in recommendations.columns]])
 
 # ============================================================
-# 6️⃣ CLUSTERING DE JOCS
+# 6️⃣ CLUSTERING AMB UMAP
 # ============================================================
 
 from sklearn.cluster import KMeans
-from sklearn.decomposition import PCA
 import plotly.express as px
+
+# Import UMAP amb gestió d'error si no està instal·lat
+try:
+    import umap
+    UMAP_AVAILABLE = True
+except ImportError:
+    UMAP_AVAILABLE = False
 
 st.divider()
 st.header("🔬 Agrupació de jocs per similitud")
 
-n_clusters = st.slider("Nombre de grups (clusters):", 2, 10, 5, key="n_clusters")
+if not UMAP_AVAILABLE:
+    st.warning(
+        "⚠️ La llibreria `umap-learn` no està instal·lada. "
+        "Afegeix `umap-learn` al teu `requirements.txt` per activar aquesta secció."
+    )
+else:
+    n_clusters = st.slider("Nombre de grups (clusters):", 2, 10, 5, key="n_clusters")
 
-@st.cache_data(show_spinner=False)
-def compute_clusters(n: int, matrix_hash: str) -> pd.DataFrame:
-    return None  # placeholder, la lògica real és a sota
+    # Construir matriu per clustering — tots els jocs
+    cluster_num_cols = numeric_cols_extended
+    cluster_features = df[cluster_num_cols].copy().fillna(df[cluster_num_cols].median())
 
-# Construir matriu de features per clustering (tots els jocs, no només filtrats)
-cluster_features = df[numeric_cols].copy()
-cluster_features = cluster_features.fillna(cluster_features.median())
+    scaler_cluster  = StandardScaler()
+    X_cl_numeric    = scaler_cluster.fit_transform(cluster_features)
 
-# Afegir mecàniques
-mec_matrix = mec_cols.values
+    # Aplicar mateixos pesos que al recomanador
+    X_cl_numeric[:, cluster_num_cols.index("playingtime")] *= PLAYTIME_WEIGHT
+    X_cl_numeric[:, cluster_num_cols.index("log_numplays")] *= NUMPLAYS_WEIGHT
+    if use_personal_rating:
+        X_cl_numeric[:, cluster_num_cols.index("rating_personal_imp")] *= RATING_WEIGHT
 
-# Normalitzar numèrics
-scaler_cluster = StandardScaler()
-X_cluster_numeric = scaler_cluster.fit_transform(cluster_features)
-X_cluster = np.hstack([X_cluster_numeric, mec_matrix * 0.5])
+    # Mecàniques amb pes reduït per no dominar el clustering
+    X_cluster = np.hstack([X_cl_numeric, mec_cols.values * 0.5])
 
-# KMeans
-kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
-cluster_labels = kmeans.fit_predict(X_cluster)
-df_plot = df[["nom_del_joc", "pes", "nota_bgg", "playingtime", "Mecànica_principal", "minplayers", "maxplayers"]].copy()
-df_plot["Cluster"] = cluster_labels.astype(str)
+    # KMeans
+    kmeans        = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+    cluster_labels = kmeans.fit_predict(X_cluster)
 
-# PCA per reduir a 2D per visualitzar
-pca = PCA(n_components=2, random_state=42)
-coords = pca.fit_transform(X_cluster)
-df_plot["PC1"] = coords[:, 0]
-df_plot["PC2"] = coords[:, 1]
+    df_plot             = df[["nom_del_joc", "pes", "nota_bgg", "playingtime",
+                               "Mecànica_principal", "minplayers", "maxplayers", "numplays"]].copy()
+    df_plot["Cluster"]  = cluster_labels.astype(str)
+    if use_personal_rating:
+        df_plot["rating_personal"] = df["rating_personal"]
 
-# Variança explicada
-var_explicada = pca.explained_variance_ratio_
-st.caption(f"Els dos eixos expliquen el {var_explicada[0]*100:.1f}% + {var_explicada[1]*100:.1f}% = {sum(var_explicada)*100:.1f}% de la variabilitat total")
+    # ── MILLORA 3: UMAP en lloc de PCA ──────────────────────────────────────
+    # UMAP preserva millor l'estructura local en espais d'alta dimensió
+    # (centenars de columnes de mecàniques) que PCA
+    with st.spinner("Calculant UMAP (pot trigar uns segons la primera vegada)..."):
+        reducer = umap.UMAP(
+            n_components=2,
+            n_neighbors=15,    # equilibri entre estructura local i global
+            min_dist=0.1,      # com de junts poden estar els punts
+            metric="cosine",   # consistent amb el recomanador
+            random_state=42
+        )
+        coords = reducer.fit_transform(X_cluster)
 
-fig_cluster = px.scatter(
-    df_plot,
-    x="PC1",
-    y="PC2",
-    color="Cluster",
-    hover_name="nom_del_joc",
-    hover_data={
-        "pes": True,
-        "nota_bgg": True,
-        "playingtime": True,
-        "Mecànica_principal": True,
-        "PC1": False,
-        "PC2": False
-    },
-    title=f"Agrupació de jocs en {n_clusters} clusters (PCA 2D)",
-    color_discrete_sequence=px.colors.qualitative.Set2,
-)
+    df_plot["UMAP_1"] = coords[:, 0]
+    df_plot["UMAP_2"] = coords[:, 1]
 
-fig_cluster.update_traces(marker=dict(size=8, opacity=0.8))
-fig_cluster.update_layout(
-    plot_bgcolor="rgba(0,0,0,0)",
-    paper_bgcolor="rgba(0,0,0,0)",
-    font=dict(color="#000000"),
-    legend_title_text="Grup",
-    xaxis=dict(showgrid=True, gridcolor="rgba(0,0,0,0.1)"),
-    yaxis=dict(showgrid=True, gridcolor="rgba(0,0,0,0.1)"),
-)
+    st.caption(
+        "📐 **UMAP** (Uniform Manifold Approximation and Projection) preserva millor "
+        "l'estructura dels datos que PCA quan hi ha moltes dimensions (mecàniques). "
+        "Jocs propers al gràfic són més similars entre ells."
+    )
 
-st.plotly_chart(fig_cluster, use_container_width=True)
+    hover_data = {
+        "pes": True, "nota_bgg": True, "playingtime": True,
+        "Mecànica_principal": True, "numplays": True,
+        "UMAP_1": False, "UMAP_2": False
+    }
+    if use_personal_rating:
+        hover_data["rating_personal"] = True
 
-# Taula resum per cluster
-st.subheader("📊 Característiques mitjanes per grup")
-cluster_summary = df_plot.groupby("Cluster").agg(
-    Jocs=("nom_del_joc", "count"),
-    Pes_mitjà=("pes", "mean"),
-    Nota_BGG_mitjana=("nota_bgg", "mean"),
-    Durada_mitjana=("playingtime", "mean"),
-).round(2).reset_index()
-cluster_summary.columns = ["Grup", "Nº Jocs", "Pes mitjà", "Nota BGG", "Durada (min)"]
-st.dataframe(cluster_summary, use_container_width=True)
+    fig_cluster = px.scatter(
+        df_plot,
+        x="UMAP_1", y="UMAP_2",
+        color="Cluster",
+        hover_name="nom_del_joc",
+        hover_data=hover_data,
+        title=f"Agrupació de jocs en {n_clusters} clusters (UMAP 2D)",
+        color_discrete_sequence=px.colors.qualitative.Set2,
+    )
 
+    fig_cluster.update_traces(marker=dict(size=8, opacity=0.8))
+    fig_cluster.update_layout(
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#000000"),
+        legend_title_text="Grup",
+        xaxis=dict(showgrid=True, gridcolor="rgba(0,0,0,0.1)", title="UMAP 1"),
+        yaxis=dict(showgrid=True, gridcolor="rgba(0,0,0,0.1)", title="UMAP 2"),
+    )
+
+    st.plotly_chart(fig_cluster, use_container_width=True)
+
+    # Taula resum per cluster
+    st.subheader("📊 Característiques mitjanes per grup")
+    agg_dict = {
+        "nom_del_joc": "count",
+        "pes": "mean",
+        "nota_bgg": "mean",
+        "playingtime": "mean",
+        "numplays": "mean",
+    }
+    if use_personal_rating:
+        agg_dict["rating_personal"] = "mean"
+
+    cluster_summary = df_plot.groupby("Cluster").agg(agg_dict).round(2).reset_index()
+
+    rename_map = {
+        "Cluster": "Grup", "nom_del_joc": "Nº Jocs",
+        "pes": "Pes mitjà", "nota_bgg": "Nota BGG",
+        "playingtime": "Durada (min)", "numplays": "Partides jugades",
+    }
+    if use_personal_rating:
+        rename_map["rating_personal"] = "Rating personal mitjà"
+
+    cluster_summary = cluster_summary.rename(columns=rename_map)
+    st.dataframe(cluster_summary, use_container_width=True)
+
+    # Mecànica més freqüent per cluster
+    st.subheader("🎲 Mecànica més freqüent per grup")
+    df_mec_cluster = df_plot[["Cluster", "Mecànica_principal"]].copy()
+    top_mec = (
+        df_mec_cluster.groupby(["Cluster", "Mecànica_principal"])
+        .size()
+        .reset_index(name="count")
+        .sort_values("count", ascending=False)
+        .groupby("Cluster")
+        .first()
+        .reset_index()[["Cluster", "Mecànica_principal", "count"]]
+    )
+    top_mec.columns = ["Grup", "Mecànica més freqüent", "Nº jocs amb aquesta mecànica"]
+    st.dataframe(top_mec, use_container_width=True)
 
 # ============================================================
 # 5️⃣ MISUT MEEPLE - RESENYA DEL JOC MÉS RECOMANAT
@@ -368,25 +474,25 @@ st.dataframe(cluster_summary, use_container_width=True)
 @st.cache_data(show_spinner=False)
 def get_misutmeeple_summary(game_name: str) -> dict:
     search_url = f"https://misutmeeple.com/?s={game_name.replace(' ', '+')}"
-    headers = {"User-Agent": "Mozilla/5.0"}
+    headers    = {"User-Agent": "Mozilla/5.0"}
     try:
-        r = requests.get(search_url, headers=headers, timeout=10)
+        r    = requests.get(search_url, headers=headers, timeout=10)
         soup = BeautifulSoup(r.text, "html.parser")
         link = soup.find("a", href=re.compile(r"misutmeeple\.com/\d{4}/"))
         if not link:
             return {"found": False, "url": "", "summary": "", "image": "", "sello": ""}
 
         page_url = link["href"]
-        r2 = requests.get(page_url, headers=headers, timeout=10)
-        soup2 = BeautifulSoup(r2.text, "html.parser")
+        r2       = requests.get(page_url, headers=headers, timeout=10)
+        soup2    = BeautifulSoup(r2.text, "html.parser")
 
         paragraphs = soup2.select("article p")[:3]
-        summary = "\n\n".join(p.get_text(separator=" ", strip=True) for p in paragraphs)
+        summary    = "\n\n".join(p.get_text(separator=" ", strip=True) for p in paragraphs)
         if not summary.strip():
             return {"found": False, "url": "", "summary": "", "image": "", "sello": ""}
 
         image_url = ""
-        img_tag = soup2.select_one("article img")
+        img_tag   = soup2.select_one("article img")
         if img_tag:
             image_url = img_tag.get("src", "") or img_tag.get("data-src", "")
 
@@ -397,7 +503,8 @@ def get_misutmeeple_summary(game_name: str) -> dict:
                 sello_url = src
                 break
 
-        return {"found": True, "url": page_url, "summary": summary, "image": image_url, "sello": sello_url}
+        return {"found": True, "url": page_url, "summary": summary,
+                "image": image_url, "sello": sello_url}
 
     except Exception as e:
         return {"found": False, "url": "", "summary": f"Error: {e}", "image": "", "sello": ""}
