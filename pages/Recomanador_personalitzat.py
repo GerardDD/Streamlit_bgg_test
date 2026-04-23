@@ -138,13 +138,13 @@ mecanica_pref = st.selectbox("Mecànica preferida:", mecaniques,
     if st.session_state.get("mecanica_pref", "Qualsevol") in mecaniques else 0,
     key="mecanica_pref")
 
-if st.button("↩️ Restablir preferències per defecte"):
-    st.session_state["pes_pref"] = 2.5
-    st.session_state["nota_pref"] = 6.5
-    st.session_state["num_jugadors"] = 3
-    st.session_state["durada_pref"] = 60
-    st.session_state["mecanica_pref"] = "Qualsevol"
-    st.rerun()
+#if st.button("↩️ Restablir preferències per defecte"):
+ #   st.session_state["pes_pref"] = 2.5
+  #  st.session_state["nota_pref"] = 6.5
+   # st.session_state["num_jugadors"] = 3
+    #st.session_state["durada_pref"] = 60
+    #st.session_state["mecanica_pref"] = "Qualsevol"
+    #st.rerun()
 
 
 
