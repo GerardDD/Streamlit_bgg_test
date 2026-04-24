@@ -276,23 +276,68 @@ sample_games = st.session_state.sample_games
 ignore_flags = {}
 user_ratings = {}
 
+# CSS per als botons de valoració
+st.markdown("""
+<style>
+/* Botons de valoració numerica */
+div[data-testid="stHorizontalBlock"] button[kind="secondary"] {
+    padding: 0.35rem 0 !important;
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+    min-height: 44px !important;
+    border-radius: 8px !important;
+}
+/* Botó seleccionat: destacar en taronja */
+div[data-testid="stHorizontalBlock"] button[kind="primary"] {
+    background-color: #E8703A !important;
+    color: white !important;
+    padding: 0.35rem 0 !important;
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    min-height: 44px !important;
+    border-radius: 8px !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 for idx, row in sample_games.iterrows():
-    # Contenidor per joc amb separació visual
+    game_name = row["nom_del_joc"]
+    rating_key = f"rating_{game_name}"
+    ignore_key = f"ignore_{game_name}"
+
+    # Valor actual (per defecte 5)
+    if rating_key not in st.session_state:
+        st.session_state[rating_key] = 5
+
     with st.container():
-        st.markdown(f"**{row['nom_del_joc']}**")
-        sub1, sub2 = st.columns([5, 1])
-        with sub1:
-            rating = st.slider(
-                "Valoració:",
-                1, 10, 5,
-                key=f"rating_{row['nom_del_joc']}",
-                label_visibility="collapsed"
+        c_name, c_ignore = st.columns([6, 1])
+        with c_name:
+            st.markdown(
+                f"**{game_name}** "
+                f"<span style='color:gray;font-size:0.85rem'>"
+                f"({row['Mecànica_principal']} · ⚖️{row['pes']:.1f} · ⭐{row['nota_bgg']:.1f})"
+                f"</span>",
+                unsafe_allow_html=True
             )
-        with sub2:
-            ignore = st.checkbox("✗", key=f"ignore_{row['nom_del_joc']}",
-                                 help="Ignorar aquest joc")
-    user_ratings[row["nom_del_joc"]] = rating
-    ignore_flags[row["nom_del_joc"]] = ignore
+        with c_ignore:
+            ignore = st.checkbox("✗", key=ignore_key, help="Ignorar aquest joc")
+
+        # 10 botons en una fila — cada botó assigna la valoració
+        btn_cols = st.columns(10)
+        current_val = st.session_state[rating_key]
+        for i, bcol in enumerate(btn_cols):
+            val = i + 1
+            label = str(val)
+            btn_type = "primary" if current_val == val else "secondary"
+            with bcol:
+                if st.button(label, key=f"btn_{game_name}_{val}", type=btn_type):
+                    st.session_state[rating_key] = val
+                    st.rerun()
+
+        st.markdown("<hr style='margin:0.5rem 0;opacity:0.15'>", unsafe_allow_html=True)
+
+    user_ratings[game_name]  = st.session_state[rating_key]
+    ignore_flags[game_name]  = st.session_state.get(ignore_key, False)
 
 # ============================================================
 # 3️⃣ BUILD USER PROFILE VECTOR
