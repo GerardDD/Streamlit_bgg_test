@@ -739,7 +739,7 @@ st.divider()
 st.header("📖 Resenya a Misut Meeple")
 
 if not recommendations.empty:
-    top_game = recommendations.iloc[0]["nom_del_joc"]
+    top_game = recommendations_display.iloc[0]["nom_del_joc"]
     st.markdown(f"Cercant informació sobre **{top_game}** a Misut Meeple...")
 
     with st.spinner(f"Buscant resenya de '{top_game}'..."):
