@@ -203,6 +203,12 @@ if "mechanics_cache" not in st.session_state:
 
 mechanics_cache = st.session_state["mechanics_cache"]
 
+# Estat de variació de recomanació (s'incrementa amb el botó)
+if "variation_idx" not in st.session_state:
+    st.session_state["variation_idx"] = 0
+if "excluded_games" not in st.session_state:
+    st.session_state["excluded_games"] = []
+
 if "objectid" in df.columns:
     df["objectid"]      = pd.to_numeric(df["objectid"], errors="coerce")
     df["all_mechanics"] = df["objectid"].map(
@@ -343,11 +349,33 @@ for idx, row in sample_games.iterrows():
 # 3️⃣ BUILD USER PROFILE VECTOR
 # ============================================================
 
-# ── Pesos ────────────────────────────────────────────────────
-PLAYTIME_WEIGHT  = 2.0
-MECHANICS_WEIGHT = 2.3
-NUMPLAYS_WEIGHT  = 1.5
-RATING_WEIGHT    = 2.0
+# ── Pesos base ───────────────────────────────────────────────
+# La variació modifica els pesos per explorar zones diferents de l'espai
+_var = st.session_state["variation_idx"]
+
+# Cada variació desplaça l'èmfasi entre dimensions:
+# 0 → configuració base
+# 1 → èmfasi en mecàniques
+# 2 → èmfasi en durada i complexitat
+# 3 → èmfasi en nota BGG
+# 4 → combinació mecàniques + nota
+# (cicle de 5 variacions, després torna a explorar)
+_var_cycle = _var % 5
+
+_weight_profiles = {
+    #              PLAYTIME  MECH   NUMPLAYS  RATING
+    0: dict(pt=2.0, mec=2.3, np=1.5, rt=2.0),  # base
+    1: dict(pt=1.0, mec=4.0, np=1.0, rt=1.5),  # èmfasi mecàniques
+    2: dict(pt=3.5, mec=1.5, np=1.0, rt=1.5),  # èmfasi durada/complexitat
+    3: dict(pt=1.5, mec=1.5, np=1.0, rt=3.5),  # èmfasi nota BGG
+    4: dict(pt=1.0, mec=3.5, np=2.0, rt=3.0),  # mecàniques + nota
+}
+_wp = _weight_profiles[_var_cycle]
+
+PLAYTIME_WEIGHT  = _wp["pt"]
+MECHANICS_WEIGHT = _wp["mec"]
+NUMPLAYS_WEIGHT  = _wp["np"]
+RATING_WEIGHT    = _wp["rt"]
 
 # ── Espai A: features per a les preferències EXPLÍCITES (sliders)
 # Només les 5 columnes que l'usuari pot expressar directament
@@ -466,14 +494,59 @@ recommendations = df_filtered.sort_values("similarity", ascending=False).head(50
 
 st.subheader("✨ Recomanacions de jocs")
 
-if recommendations.empty:
+# Excloure jocs ja suggerits en variacions anteriors
+excluded = st.session_state["excluded_games"]
+recommendations_display = recommendations[
+    ~recommendations["nom_del_joc"].isin(excluded)
+]
+
+if recommendations_display.empty:
+    # Si hem esgotat totes les opcions, netejem exclusions
+    st.session_state["excluded_games"] = []
+    recommendations_display = recommendations
+
+if recommendations_display.empty:
     st.success("🎉 No hi ha recomanacions noves!")
 else:
     display_cols = ["nom_del_joc", "similarity", "Mecànica_principal",
                     "pes", "nota_bgg", "playingtime", "minplayers", "maxplayers", "numplays"]
     if use_personal_rating:
         display_cols.append("rating_personal")
-    st.write(recommendations[[c for c in display_cols if c in recommendations.columns]])
+    st.write(recommendations_display[[c for c in display_cols if c in recommendations_display.columns]])
+
+    # ── Botó "Suggereix una recomanació diferent" ─────────────────
+    st.markdown("")  # espai visual
+
+    # Mostrar info sobre la variació activa
+    _var_labels = {
+        0: "configuració base",
+        1: "èmfasi en mecàniques",
+        2: "èmfasi en durada i complexitat",
+        3: "èmfasi en nota BGG",
+        4: "mecàniques + nota BGG",
+    }
+    if _var_cycle > 0:
+        st.caption(
+            f"🔀 Variació {_var_cycle}/4 activa: **{_var_labels[_var_cycle]}** · "
+            f"{len(excluded)} joc(s) exclòs(os) de suggeriments anteriors"
+        )
+
+    if st.button("🔀 Suggereix una recomanació diferent", type="secondary"):
+        # Guardar el top joc actual com a exclòs
+        if not recommendations_display.empty:
+            top_game_to_exclude = recommendations_display.iloc[0]["nom_del_joc"]
+            if top_game_to_exclude not in st.session_state["excluded_games"]:
+                st.session_state["excluded_games"].append(top_game_to_exclude)
+        # Incrementar variació per canviar pesos
+        st.session_state["variation_idx"] += 1
+        st.rerun()
+
+    # Botó per tornar a la configuració base
+    if _var_cycle > 0:
+        if st.button("↩️ Tornar a la recomanació principal", type="secondary"):
+            st.session_state["variation_idx"] = 0
+            st.session_state["excluded_games"] = []
+            st.rerun()
 
 # ============================================================
 # 6️⃣ CLUSTERING AMB UMAP
