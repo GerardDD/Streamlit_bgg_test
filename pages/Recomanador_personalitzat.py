@@ -363,17 +363,15 @@ else:
     n_clusters = st.slider("Nombre de grups (clusters):", 2, 10, 5, key="n_clusters")
 
     # Construir matriu per clustering — tots els jocs
-    cluster_num_cols = all_num_cols
+    # rating_personal_imp s'exclou: molts jocs sense valorar distorsionen els grups
+    cluster_num_cols = [c for c in all_num_cols if c != "rating_personal_imp"]
     cluster_features = df[cluster_num_cols].copy().fillna(df[cluster_num_cols].median())
 
     scaler_cluster  = StandardScaler()
     X_cl_numeric    = scaler_cluster.fit_transform(cluster_features)
 
-    # Aplicar mateixos pesos que al recomanador
     X_cl_numeric[:, cluster_num_cols.index("playingtime")] *= PLAYTIME_WEIGHT
     X_cl_numeric[:, cluster_num_cols.index("log_numplays")] *= NUMPLAYS_WEIGHT
-    if use_personal_rating:
-        X_cl_numeric[:, cluster_num_cols.index("rating_personal_imp")] *= RATING_WEIGHT
 
     # Mecàniques amb pes reduït per no dominar el clustering
     X_cluster = np.hstack([X_cl_numeric, mec_cols.values * 0.5])
