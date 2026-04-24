@@ -58,6 +58,9 @@ df = df.rename(columns={
 required_cols = ["pes", "nota_bgg", "minplayers", "maxplayers"]
 df = df.dropna(subset=required_cols)
 
+# Excloure jocs amb pes 0 (sense dades de complexitat a BGG)
+df = df[df["pes"] > 0]
+
 df["comment"] = df["comment"].replace(r"^\s*$", "No informat", regex=True)
 df["comment"] = df["comment"].fillna("No informat")
 df["comment"] = df["comment"].replace("Selecció accions",   "Selecció d'accions", regex=True)
@@ -202,81 +205,84 @@ for idx, row in sample_games.iterrows():
 # 3️⃣ BUILD USER PROFILE VECTOR
 # ============================================================
 
+# ── Pesos ────────────────────────────────────────────────────
 PLAYTIME_WEIGHT  = 2.0
 MECHANICS_WEIGHT = 2.3
-NUMPLAYS_WEIGHT  = 1.5   # pes per log_numplays
-RATING_WEIGHT    = 2.0   # pes per rating personal
+NUMPLAYS_WEIGHT  = 1.5
+RATING_WEIGHT    = 2.0
 
-# Columnes numèriques base
+# ── Espai A: features per a les preferències EXPLÍCITES (sliders)
+# Només les 5 columnes que l'usuari pot expressar directament
 numeric_cols = ["pes", "nota_bgg", "minplayers", "maxplayers", "playingtime"]
 
-# Afegir log_numplays sempre
-numeric_cols_extended = numeric_cols + ["log_numplays"]
-
-# Afegir rating_personal si existeix i té dades
+# ── Espai B: features extres per enriquir el perfil DES DELS JOCS VALORATS
+# log_numplays i rating_personal NO entren al vector de preferències explícites
+# perquè l'usuari no pot expressar "quantes vegades vol haver jugat" un joc nou
+extra_cols = ["log_numplays"]
 use_personal_rating = has_personal_ratings > 0
 if use_personal_rating:
-    # Imputem la mediana als jocs sense valoració personal
     median_rating = df["rating_personal"].median()
     df["rating_personal_imp"] = df["rating_personal"].fillna(median_rating)
-    numeric_cols_extended = numeric_cols_extended + ["rating_personal_imp"]
+    extra_cols = extra_cols + ["rating_personal_imp"]
     st.caption(
         f"ℹ️ S'han trobat **{has_personal_ratings}** valoracions personals teves al CSV. "
-        f"S'usaran com a feature addicional per millorar les recomanacions."
+        f"S'usaran per enriquir el perfil de recomanació."
     )
 
-scaler   = StandardScaler()
-X_num    = scaler.fit_transform(df[numeric_cols_extended])
+all_num_cols = numeric_cols + extra_cols
 
-# Aplicar pesos específics
-playtime_idx = numeric_cols_extended.index("playingtime")
-numplays_idx = numeric_cols_extended.index("log_numplays")
-X_num[:, playtime_idx] *= PLAYTIME_WEIGHT
-X_num[:, numplays_idx] *= NUMPLAYS_WEIGHT
+# ── Escalar UNA sola vegada (sense aplicar pesos aquí)
+scaler  = StandardScaler()
+X_num   = scaler.fit_transform(df[all_num_cols])
+
+# Aplicar pesos a la matriu de jocs
+X_num_w = X_num.copy()
+X_num_w[:, all_num_cols.index("playingtime")] *= PLAYTIME_WEIGHT
+X_num_w[:, all_num_cols.index("log_numplays")] *= NUMPLAYS_WEIGHT
 if use_personal_rating:
-    rating_idx = numeric_cols_extended.index("rating_personal_imp")
-    X_num[:, rating_idx] *= RATING_WEIGHT
+    X_num_w[:, all_num_cols.index("rating_personal_imp")] *= RATING_WEIGHT
 
-X = np.hstack([X_num, mec_cols.values * MECHANICS_WEIGHT])
+X = np.hstack([X_num_w, mec_cols.values * MECHANICS_WEIGHT])
 
-# Jocs valorats per l'usuari als sliders
-rated_names  = [g for g in user_ratings if not ignore_flags[g]]
-rated_games  = df[df["nom_del_joc"].isin(rated_names)].copy()
+# ── Perfil des dels jocs valorats als sliders (usa TOTS els features)
+rated_names = [g for g in user_ratings if not ignore_flags[g]]
+rated_games = df[df["nom_del_joc"].isin(rated_names)].copy()
 rated_games["user_rating"] = rated_games["nom_del_joc"].map(user_ratings)
 
-user_profile_numeric = np.average(
-    scaler.transform(rated_games[numeric_cols_extended]),
-    axis=0,
-    weights=rated_games["user_rating"]
-)
-# Re-aplicar pesos
-user_profile_numeric[playtime_idx] *= PLAYTIME_WEIGHT
-user_profile_numeric[numplays_idx] *= NUMPLAYS_WEIGHT
+rated_num_scaled = scaler.transform(rated_games[all_num_cols])
+rated_num_scaled[:, all_num_cols.index("playingtime")] *= PLAYTIME_WEIGHT
+rated_num_scaled[:, all_num_cols.index("log_numplays")] *= NUMPLAYS_WEIGHT
 if use_personal_rating:
-    user_profile_numeric[rating_idx] *= RATING_WEIGHT
+    rated_num_scaled[:, all_num_cols.index("rating_personal_imp")] *= RATING_WEIGHT
 
-rated_mec_matrix     = mec_cols.loc[rated_games.index].values
+user_profile_from_ratings = np.average(
+    rated_num_scaled, axis=0, weights=rated_games["user_rating"]
+)
+
+rated_mec_matrix      = mec_cols.loc[rated_games.index].values
 user_mec_from_ratings = np.average(
     rated_mec_matrix, axis=0, weights=rated_games["user_rating"]
 )
 
-# Vector de preferències explícites
+# ── Perfil des de les preferències EXPLÍCITES (només numeric_cols base)
+# log_numplays i rating_personal s'ometen aquí — valor 0 escalat = neutre
 pref_row = {
     "pes": pes_pref, "nota_bgg": nota_pref,
     "minplayers": num_jugadors, "maxplayers": num_jugadors,
     "playingtime": durada_pref,
-    "log_numplays": 0.0,   # neutre per preferències explícites
+    "log_numplays": float(df["log_numplays"].median()),
 }
 if use_personal_rating:
-    pref_row["rating_personal_imp"] = median_rating  # neutre
+    pref_row["rating_personal_imp"] = median_rating
 
-pref_df             = pd.DataFrame([pref_row])[numeric_cols_extended]
-pref_numeric_vector = scaler.transform(pref_df)[0]
-pref_numeric_vector[playtime_idx] *= PLAYTIME_WEIGHT
-pref_numeric_vector[numplays_idx] *= NUMPLAYS_WEIGHT
+pref_scaled = scaler.transform(pd.DataFrame([pref_row])[all_num_cols])[0]
+pref_scaled[all_num_cols.index("playingtime")] *= PLAYTIME_WEIGHT
+# log_numplays i rating NO es ponderen al vector de prefs — evita soroll
+pref_scaled[all_num_cols.index("log_numplays")] = 0.0
 if use_personal_rating:
-    pref_numeric_vector[rating_idx] *= RATING_WEIGHT
+    pref_scaled[all_num_cols.index("rating_personal_imp")] = 0.0
 
+# ── Mecànica explícita
 user_mec_vector = np.zeros(len(mec_cols.columns))
 if mecanica_pref != "Qualsevol":
     colname = f"mec_{mecanica_pref.replace(' ', '_')}"
@@ -285,10 +291,17 @@ if mecanica_pref != "Qualsevol":
 else:
     MECHANICS_WEIGHT = 0
 
-user_profile = np.concatenate([
-    (user_profile_numeric + pref_numeric_vector) / 2,
-    ((user_mec_from_ratings + user_mec_vector) / 2) * MECHANICS_WEIGHT
-])
+# ── Combinació final: 60% valoracions del usuari + 40% preferències explícites
+# Les valoracions pesen més perquè contenen informació real de comportament
+RATING_BLEND = 0.6
+PREF_BLEND   = 0.4
+
+final_num = (user_profile_from_ratings * RATING_BLEND +
+             pref_scaled              * PREF_BLEND)
+final_mec = ((user_mec_from_ratings * RATING_BLEND +
+              user_mec_vector       * PREF_BLEND) * MECHANICS_WEIGHT)
+
+user_profile = np.concatenate([final_num, final_mec])
 
 # ============================================================
 # 4️⃣ COMPUTE SIMILARITY AND RECOMMEND
@@ -350,7 +363,7 @@ else:
     n_clusters = st.slider("Nombre de grups (clusters):", 2, 10, 5, key="n_clusters")
 
     # Construir matriu per clustering — tots els jocs
-    cluster_num_cols = numeric_cols_extended
+    cluster_num_cols = all_num_cols
     cluster_features = df[cluster_num_cols].copy().fillna(df[cluster_num_cols].median())
 
     scaler_cluster  = StandardScaler()
