@@ -8,7 +8,95 @@ import requests
 from bs4 import BeautifulSoup
 import re
 
-st.set_page_config(layout="wide")
+st.set_page_config(layout="centered")
+
+# ============================================================
+# CSS RESPONSIVE
+# ============================================================
+st.markdown("""
+<style>
+/* ── Desktop: amplada màxima generosa ────────────────────── */
+.block-container {
+    max-width: 1200px !important;
+    padding-left: 2rem !important;
+    padding-right: 2rem !important;
+}
+
+/* ── En mòbil: eliminar padding lateral excessiu ─────────── */
+@media (max-width: 768px) {
+
+    .block-container {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        max-width: 100% !important;
+    }
+
+    h1 { font-size: 1.4rem !important; }
+    h2 { font-size: 1.2rem !important; }
+    h3 { font-size: 1.05rem !important; }
+
+    /* Sliders: zona tàctil més gran */
+    .stSlider > div > div > div {
+        height: 44px !important;
+    }
+    .stSlider [data-testid="stThumbValue"] {
+        font-size: 1rem !important;
+    }
+
+    /* Botons */
+    .stButton > button {
+        width: 100% !important;
+        min-height: 44px !important;
+        font-size: 1rem !important;
+        margin-bottom: 0.4rem !important;
+    }
+
+    /* Checkboxes */
+    .stCheckbox label {
+        font-size: 1rem !important;
+        min-height: 44px !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+
+    /* Selectbox */
+    .stSelectbox > div > div {
+        min-height: 44px !important;
+        font-size: 1rem !important;
+    }
+
+    /* Columnes: apilament vertical en mòbil */
+    [data-testid="column"] {
+        width: 100% !important;
+        flex: 1 1 100% !important;
+        min-width: 100% !important;
+    }
+
+    /* Taules: scroll horitzontal */
+    .stDataFrame {
+        overflow-x: auto !important;
+    }
+
+    /* Imatges */
+    img {
+        max-width: 100% !important;
+        height: auto !important;
+    }
+
+    .stCaption, small {
+        font-size: 0.85rem !important;
+    }
+}
+
+/* ── Cards de valoració: separació visual ────────────────── */
+[data-testid="stVerticalBlock"] > [data-testid="stHorizontalBlock"] {
+    border-bottom: 1px solid rgba(128,128,128,0.15);
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+</style>
+""", unsafe_allow_html=True)
+
 st.title("🎯 Recomanador personalitzat de jocs")
 
 # ============================================================
@@ -189,15 +277,20 @@ ignore_flags = {}
 user_ratings = {}
 
 for idx, row in sample_games.iterrows():
-    col1, col2 = st.columns([3, 1])
-    with col1:
-        rating = st.slider(
-            f"Valoració per **{row['nom_del_joc']}**:",
-            1, 10, 5, key=f"rating_{row['nom_del_joc']}"
-        )
-    with col2:
-        ignore = st.checkbox("Ignorar", key=f"ignore_{row['nom_del_joc']}")
-
+    # Contenidor per joc amb separació visual
+    with st.container():
+        st.markdown(f"**{row['nom_del_joc']}**")
+        sub1, sub2 = st.columns([5, 1])
+        with sub1:
+            rating = st.slider(
+                "Valoració:",
+                1, 10, 5,
+                key=f"rating_{row['nom_del_joc']}",
+                label_visibility="collapsed"
+            )
+        with sub2:
+            ignore = st.checkbox("✗", key=f"ignore_{row['nom_del_joc']}",
+                                 help="Ignorar aquest joc")
     user_ratings[row["nom_del_joc"]] = rating
     ignore_flags[row["nom_del_joc"]] = ignore
 
@@ -534,13 +627,14 @@ if not recommendations.empty:
     if result["found"]:
         st.success(f"✅ Resenya trobada per a **{top_game}**!")
         st.markdown(f"🔗 [Llegir la resenya completa a Misut Meeple]({result['url']})")
-        col1, col2 = st.columns([1, 2])
-        with col1:
+        # En mòbil les columnes s'apilen: imatge dalt, text a baix
+        img_col, txt_col = st.columns([1, 2])
+        with img_col:
             if result["image"]:
                 st.image(result["image"], use_container_width=True)
             if result["sello"]:
                 st.image(result["sello"], use_container_width=True)
-        with col2:
+        with txt_col:
             st.markdown(result["summary"])
     else:
         st.info(f"ℹ️ No s'ha trobat cap resenya de **{top_game}** a Misut Meeple.")
