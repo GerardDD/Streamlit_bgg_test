@@ -268,15 +268,99 @@ filter_owned = st.checkbox("Només mostrar jocs que tinc en propietat", value=Fa
 st.header("⭐ Avalua alguns jocs")
 st.subheader("🚥 Puntua del 1 al 10 fins a quin punt s'ajusten al que estàs buscant")
 
-if "sample_games" not in st.session_state:
-    st.session_state.sample_games = df.sample(10)[
-        ["nom_del_joc", "pes", "nota_bgg", "minplayers", "maxplayers", "Mecànica_principal"]
-    ]
+def select_strategic_games(df: pd.DataFrame, n: int = 10) -> pd.DataFrame:
+    """
+    Selecciona jocs estratègicament per maximitzar la informació del perfil:
+    - 1 representant per cluster (cobreix tot l'espai de jocs)
+    - 1 per mecànica principal de les més freqüents (diversitat de mecàniques)
+    - Resta: jocs amb nota BGG alta i pes variat (qualitat + diversitat)
+    Els representants de cluster es trien com el joc més proper al centroide.
+    """
+    cols_base = ["pes", "nota_bgg", "minplayers", "maxplayers", "playingtime", "log_numplays"]
+    cols_available = [c for c in cols_base if c in df.columns]
 
-if st.button("🔄 Tornar a mostrar altres jocs"):
-    st.session_state.sample_games = df.sample(10)[
-        ["nom_del_joc", "pes", "nota_bgg", "minplayers", "maxplayers", "Mecànica_principal"]
-    ]
+    selected_ids = set()
+    selected_rows = []
+
+    # ── 1. Un representant per cluster (fins a 5) ─────────────────
+    try:
+        from sklearn.cluster import KMeans
+        from sklearn.preprocessing import StandardScaler as _SS
+        X_s = _SS().fit_transform(df[cols_available].fillna(0))
+        n_cl = min(5, len(df) // 3)
+        km = KMeans(n_clusters=n_cl, random_state=42, n_init=5)
+        labels = km.fit_predict(X_s)
+        df_tmp = df.copy()
+        df_tmp["_cluster"] = labels
+        df_tmp["_X0"] = X_s[:, 0]
+        df_tmp["_X1"] = X_s[:, 1]
+        for cl in range(n_cl):
+            cl_mask = df_tmp["_cluster"] == cl
+            cl_df   = df_tmp[cl_mask]
+            # joc més proper al centroide del cluster
+            centroid = km.cluster_centers_[cl]
+            dists = np.linalg.norm(X_s[cl_mask.values] - centroid, axis=1)
+            rep_idx = cl_df.index[np.argmin(dists)]
+            if rep_idx not in selected_ids:
+                selected_ids.add(rep_idx)
+                selected_rows.append(df.loc[rep_idx])
+    except Exception:
+        pass
+
+    # ── 2. Un per mecànica principal (les més freqüents) ──────────
+    top_mecs = df["Mecànica_principal"].value_counts().head(8).index.tolist()
+    for mec in top_mecs:
+        if len(selected_rows) >= n:
+            break
+        candidates = df[
+            (df["Mecànica_principal"] == mec) &
+            (~df.index.isin(selected_ids))
+        ]
+        if candidates.empty:
+            continue
+        # Millor valorat de la mecànica
+        rep = candidates.sort_values("nota_bgg", ascending=False).iloc[0]
+        selected_ids.add(rep.name)
+        selected_rows.append(rep)
+
+    # ── 3. Completar amb jocs ben valorats no repetits ────────────
+    remaining = df[~df.index.isin(selected_ids)].sort_values(
+        "nota_bgg", ascending=False
+    )
+    for _, row in remaining.iterrows():
+        if len(selected_rows) >= n:
+            break
+        selected_rows.append(row)
+        selected_ids.add(row.name)
+
+    result = pd.DataFrame(selected_rows[:n])
+    return result[["nom_del_joc", "pes", "nota_bgg", "minplayers", "maxplayers", "Mecànica_principal"]]
+
+
+if "sample_games" not in st.session_state:
+    st.session_state.sample_games = select_strategic_games(df, n=10)
+
+col_refresh1, col_refresh2 = st.columns([1, 1])
+with col_refresh1:
+    if st.button("🎯 Regenerar selecció estratègica", use_container_width=True):
+        st.session_state.sample_games = select_strategic_games(df, n=10)
+        # Netejar valoracions anteriors
+        for name in st.session_state.sample_games["nom_del_joc"]:
+            st.session_state.pop(f"rating_{name}", None)
+        st.rerun()
+with col_refresh2:
+    if st.button("🔀 Selecció aleatòria", use_container_width=True):
+        st.session_state.sample_games = df.sample(10)[
+            ["nom_del_joc", "pes", "nota_bgg", "minplayers", "maxplayers", "Mecànica_principal"]
+        ]
+        for name in st.session_state.sample_games["nom_del_joc"]:
+            st.session_state.pop(f"rating_{name}", None)
+        st.rerun()
+
+st.caption(
+    "🎯 Els jocs mostrats han estat seleccionats estratègicament per cobrir "
+    "diferents tipus de jocs i mecàniques, maximitzant la informació del teu perfil."
+)
 
 sample_games = st.session_state.sample_games
 ignore_flags = {}
@@ -738,7 +822,8 @@ def get_misutmeeple_summary(game_name: str) -> dict:
 st.divider()
 st.header("📖 Resenya a Misut Meeple")
 
-if not recommendations.empty:
+# Usem recommendations_display per reflectir la variació activa
+if not recommendations_display.empty:
     top_game = recommendations_display.iloc[0]["nom_del_joc"]
     st.markdown(f"Cercant informació sobre **{top_game}** a Misut Meeple...")
 
@@ -748,7 +833,6 @@ if not recommendations.empty:
     if result["found"]:
         st.success(f"✅ Resenya trobada per a **{top_game}**!")
         st.markdown(f"🔗 [Llegir la resenya completa a Misut Meeple]({result['url']})")
-        # En mòbil les columnes s'apilen: imatge dalt, text a baix
         img_col, txt_col = st.columns([1, 2])
         with img_col:
             if result["image"]:
