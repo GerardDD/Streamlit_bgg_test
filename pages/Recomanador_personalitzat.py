@@ -16,6 +16,34 @@ st.set_page_config(layout="centered")
 st.markdown("""
 <style>
 /* ══════════════════════════════════════════════════════════
+   SCROLL VERTICAL
+══════════════════════════════════════════════════════════ */
+html {
+    scroll-behavior: smooth !important;
+}
+
+/* Barra de scroll personalitzada (Chrome/Edge/Safari) */
+::-webkit-scrollbar {
+    width: 6px !important;
+}
+::-webkit-scrollbar-track {
+    background: transparent !important;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(232,112,58,0.4) !important;
+    border-radius: 99px !important;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(232,112,58,0.75) !important;
+}
+
+/* Firefox */
+* {
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(232,112,58,0.4) transparent !important;
+}
+
+/* ══════════════════════════════════════════════════════════
    TOKENS
 ══════════════════════════════════════════════════════════ */
 :root {
