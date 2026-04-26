@@ -15,64 +15,219 @@ st.set_page_config(layout="centered")
 # ============================================================
 st.markdown("""
 <style>
-/* ── Desktop: amplada màxima generosa ────────────────────── */
-.block-container {
-    max-width: 1200px !important;
-    padding-left: 2rem !important;
-    padding-right: 2rem !important;
+/* ══════════════════════════════════════════════════════════
+   TOKENS
+══════════════════════════════════════════════════════════ */
+:root {
+    --accent:       #E8703A;
+    --accent-dark:  #C95A28;
+    --accent-light: #FDE8DC;
+    --surface:      #FAFAFA;
+    --border:       rgba(0,0,0,0.08);
+    --text-muted:   #888;
+    --radius-sm:    8px;
+    --radius-md:    12px;
+    --radius-lg:    16px;
+    --shadow-sm:    0 1px 3px rgba(0,0,0,0.08);
+    --shadow-md:    0 4px 12px rgba(0,0,0,0.10);
+    --touch:        44px;
 }
 
-/* ── En mòbil: eliminar padding lateral excessiu ─────────── */
-@media (max-width: 768px) {
+/* ══════════════════════════════════════════════════════════
+   LAYOUT GLOBAL
+══════════════════════════════════════════════════════════ */
+.block-container {
+    max-width: 900px !important;
+    padding: 2rem 2rem 4rem !important;
+}
 
+/* ══════════════════════════════════════════════════════════
+   TIPOGRAFIA
+══════════════════════════════════════════════════════════ */
+h1 { font-size: 1.75rem !important; font-weight: 800 !important; letter-spacing: -0.5px; }
+h2 { font-size: 1.35rem !important; font-weight: 700 !important; }
+h3 { font-size: 1.1rem  !important; font-weight: 600 !important; }
+
+/* ══════════════════════════════════════════════════════════
+   BOTONS GLOBALS — disseny net i modern
+══════════════════════════════════════════════════════════ */
+.stButton > button {
+    border-radius: var(--radius-sm) !important;
+    font-weight: 600 !important;
+    font-size: 0.9rem !important;
+    min-height: var(--touch) !important;
+    padding: 0.5rem 1.25rem !important;
+    transition: all 0.15s ease !important;
+    border: 1.5px solid var(--border) !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+.stButton > button:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: var(--shadow-md) !important;
+}
+/* Botó primari */
+.stButton > button[kind="primary"] {
+    background: var(--accent) !important;
+    color: white !important;
+    border-color: var(--accent) !important;
+}
+.stButton > button[kind="primary"]:hover {
+    background: var(--accent-dark) !important;
+    border-color: var(--accent-dark) !important;
+}
+/* Botó secundari */
+.stButton > button[kind="secondary"] {
+    background: white !important;
+    color: #333 !important;
+}
+.stButton > button[kind="secondary"]:hover {
+    background: var(--surface) !important;
+    border-color: #bbb !important;
+}
+
+/* ══════════════════════════════════════════════════════════
+   SLIDERS
+══════════════════════════════════════════════════════════ */
+.stSlider [data-baseweb="slider"] {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+}
+.stSlider [data-testid="stThumbValue"] {
+    background: var(--accent) !important;
+    color: white !important;
+    border-radius: 6px !important;
+    font-weight: 700 !important;
+    font-size: 0.8rem !important;
+    padding: 2px 6px !important;
+}
+
+/* ══════════════════════════════════════════════════════════
+   SELECTBOX I INPUTS
+══════════════════════════════════════════════════════════ */
+.stSelectbox > div > div {
+    border-radius: var(--radius-sm) !important;
+    min-height: var(--touch) !important;
+}
+.stSelectbox > div > div:focus-within {
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 2px var(--accent-light) !important;
+}
+
+/* ══════════════════════════════════════════════════════════
+   CARDS DE VALORACIÓ
+══════════════════════════════════════════════════════════ */
+.rating-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 0.85rem 1rem;
+    margin-bottom: 0.6rem;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.15s;
+}
+.rating-card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+/* ══════════════════════════════════════════════════════════
+   BOTONS DE VALORACIÓ NUMÈRICA (1-10)
+══════════════════════════════════════════════════════════ */
+.rating-btn-row button {
+    padding: 0 !important;
+    min-height: 38px !important;
+    font-size: 0.85rem !important;
+    font-weight: 700 !important;
+    border-radius: 6px !important;
+    border: 1.5px solid var(--border) !important;
+    background: white !important;
+    color: #555 !important;
+    box-shadow: none !important;
+    transition: all 0.1s ease !important;
+}
+.rating-btn-row button:hover {
+    border-color: var(--accent) !important;
+    color: var(--accent) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 6px rgba(232,112,58,0.2) !important;
+}
+/* Botó actiu */
+.rating-btn-row button[kind="primary"] {
+    background: var(--accent) !important;
+    color: white !important;
+    border-color: var(--accent) !important;
+    box-shadow: 0 2px 8px rgba(232,112,58,0.35) !important;
+}
+
+/* ══════════════════════════════════════════════════════════
+   CHECKBOX
+══════════════════════════════════════════════════════════ */
+.stCheckbox label {
+    font-size: 0.9rem !important;
+    min-height: var(--touch) !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.4rem !important;
+}
+
+/* ══════════════════════════════════════════════════════════
+   DIVIDER
+══════════════════════════════════════════════════════════ */
+hr {
+    border: none !important;
+    border-top: 1px solid var(--border) !important;
+    margin: 1.5rem 0 !important;
+}
+
+/* ══════════════════════════════════════════════════════════
+   DATAFRAME
+══════════════════════════════════════════════════════════ */
+.stDataFrame {
+    border-radius: var(--radius-md) !important;
+    overflow: hidden !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+
+/* ══════════════════════════════════════════════════════════
+   CAPTION / BADGE
+══════════════════════════════════════════════════════════ */
+.stCaption {
+    color: var(--text-muted) !important;
+    font-size: 0.82rem !important;
+}
+
+/* ══════════════════════════════════════════════════════════
+   MÒBIL  (≤ 640px)
+══════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
     .block-container {
-        padding-left: 1rem !important;
-        padding-right: 1rem !important;
+        padding: 1rem 0.75rem 3rem !important;
         max-width: 100% !important;
     }
 
-    h1 { font-size: 1.4rem !important; }
-    h2 { font-size: 1.2rem !important; }
-    h3 { font-size: 1.05rem !important; }
+    h1 { font-size: 1.3rem  !important; }
+    h2 { font-size: 1.15rem !important; }
+    h3 { font-size: 1rem    !important; }
 
-    /* Sliders: zona tàctil més gran */
-    .stSlider > div > div > div {
-        height: 44px !important;
-    }
-    .stSlider [data-testid="stThumbValue"] {
-        font-size: 1rem !important;
-    }
-
-    /* Botons */
+    /* Botons a amplada completa */
     .stButton > button {
         width: 100% !important;
-        min-height: 44px !important;
-        font-size: 1rem !important;
-        margin-bottom: 0.4rem !important;
+        font-size: 0.95rem !important;
     }
 
-    /* Checkboxes */
-    .stCheckbox label {
-        font-size: 1rem !important;
-        min-height: 44px !important;
-        display: flex !important;
-        align-items: center !important;
-    }
-
-    /* Selectbox */
-    .stSelectbox > div > div {
-        min-height: 44px !important;
-        font-size: 1rem !important;
-    }
-
-    /* Columnes: apilament vertical en mòbil */
+    /* Columnes → apilament vertical */
     [data-testid="column"] {
         width: 100% !important;
         flex: 1 1 100% !important;
         min-width: 100% !important;
     }
 
-    /* Taules: scroll horitzontal */
+    /* Botons numèrics més grans en tàctil */
+    .rating-btn-row button {
+        min-height: var(--touch) !important;
+        font-size: 0.9rem !important;
+    }
+
+    /* Taules scroll horitzontal */
     .stDataFrame {
         overflow-x: auto !important;
     }
@@ -83,16 +238,7 @@ st.markdown("""
         height: auto !important;
     }
 
-    .stCaption, small {
-        font-size: 0.85rem !important;
-    }
-}
-
-/* ── Cards de valoració: separació visual ────────────────── */
-[data-testid="stVerticalBlock"] > [data-testid="stHorizontalBlock"] {
-    border-bottom: 1px solid rgba(128,128,128,0.15);
-    padding-bottom: 0.5rem;
-    margin-bottom: 0.25rem;
+    .stCaption { font-size: 0.8rem !important; }
 }
 </style>
 """, unsafe_allow_html=True)
@@ -366,65 +512,58 @@ sample_games = st.session_state.sample_games
 ignore_flags = {}
 user_ratings = {}
 
-# CSS per als botons de valoració
-st.markdown("""
-<style>
-/* Botons de valoració numerica */
-div[data-testid="stHorizontalBlock"] button[kind="secondary"] {
-    padding: 0.35rem 0 !important;
-    font-size: 1rem !important;
-    font-weight: 600 !important;
-    min-height: 44px !important;
-    border-radius: 8px !important;
-}
-/* Botó seleccionat: destacar en taronja */
-div[data-testid="stHorizontalBlock"] button[kind="primary"] {
-    background-color: #E8703A !important;
-    color: white !important;
-    padding: 0.35rem 0 !important;
-    font-size: 1rem !important;
-    font-weight: 700 !important;
-    min-height: 44px !important;
-    border-radius: 8px !important;
-}
-</style>
-""", unsafe_allow_html=True)
-
 for idx, row in sample_games.iterrows():
-    game_name = row["nom_del_joc"]
+    game_name  = row["nom_del_joc"]
     rating_key = f"rating_{game_name}"
     ignore_key = f"ignore_{game_name}"
 
-    # Valor actual (per defecte 5)
     if rating_key not in st.session_state:
         st.session_state[rating_key] = 5
 
-    with st.container():
-        c_name, c_ignore = st.columns([6, 1])
-        with c_name:
-            st.markdown(
-                f"**{game_name}** "
-                f"<span style='color:gray;font-size:0.85rem'>"
-                f"({row['Mecànica_principal']} · ⚖️{row['pes']:.1f} · ⭐{row['nota_bgg']:.1f})"
-                f"</span>",
-                unsafe_allow_html=True
-            )
-        with c_ignore:
-            ignore = st.checkbox("✗", key=ignore_key, help="Ignorar aquest joc")
+    current_val = st.session_state[rating_key]
 
-        # 10 botons en una fila — cada botó assigna la valoració
-        btn_cols = st.columns(10)
-        current_val = st.session_state[rating_key]
-        for i, bcol in enumerate(btn_cols):
-            val = i + 1
-            label = str(val)
-            btn_type = "primary" if current_val == val else "secondary"
-            with bcol:
-                if st.button(label, key=f"btn_{game_name}_{val}", type=btn_type):
-                    st.session_state[rating_key] = val
-                    st.rerun()
+    # Color de la barra de valoració (verd si alt, taronja si mig, gris si baix)
+    bar_color = "#4CAF50" if current_val >= 8 else "#E8703A" if current_val >= 5 else "#ccc"
+    bar_width  = current_val * 10
 
-        st.markdown("<hr style='margin:0.5rem 0;opacity:0.15'>", unsafe_allow_html=True)
+    st.markdown(f"""
+    <div class="rating-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.4rem">
+            <div>
+                <span style="font-weight:700;font-size:1rem">{game_name}</span><br>
+                <span style="color:#888;font-size:0.78rem">
+                    🎲 {row['Mecànica_principal']} &nbsp;·&nbsp;
+                    ⚖️ {row['pes']:.1f} &nbsp;·&nbsp;
+                    ⭐ {row['nota_bgg']:.1f}
+                </span>
+            </div>
+            <span style="font-size:1.6rem;font-weight:800;color:{bar_color};min-width:2rem;text-align:right">
+                {current_val}
+            </span>
+        </div>
+        <div style="background:#eee;border-radius:4px;height:4px;margin-bottom:0.6rem">
+            <div style="background:{bar_color};width:{bar_width}%;height:4px;border-radius:4px;transition:width 0.2s"></div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Fila de botons numèrics
+    st.markdown('<div class="rating-btn-row">', unsafe_allow_html=True)
+    btn_cols = st.columns(10)
+    for i, bcol in enumerate(btn_cols):
+        val       = i + 1
+        btn_type  = "primary" if current_val == val else "secondary"
+        with bcol:
+            if st.button(str(val), key=f"btn_{game_name}_{val}", type=btn_type):
+                st.session_state[rating_key] = val
+                st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # Checkbox ignorar inline sota els botons
+    ignore = st.checkbox(
+        "Ignorar aquest joc", key=ignore_key,
+    )
+    st.markdown("<div style='height:0.25rem'></div>", unsafe_allow_html=True)
 
     user_ratings[game_name]  = st.session_state[rating_key]
     ignore_flags[game_name]  = st.session_state.get(ignore_key, False)
