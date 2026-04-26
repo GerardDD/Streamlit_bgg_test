@@ -117,16 +117,21 @@ h3 { font-size: 1.1rem  !important; font-weight: 600 !important; }
    CARDS DE VALORACIÓ
 ══════════════════════════════════════════════════════════ */
 .rating-card {
-    background: white;
+    background: white !important;
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     padding: 0.85rem 1rem;
     margin-bottom: 0.6rem;
     box-shadow: var(--shadow-sm);
     transition: box-shadow 0.15s;
+    color: #111 !important;
 }
 .rating-card:hover {
     box-shadow: var(--shadow-md);
+}
+.rating-card span,
+.rating-card div {
+    color: inherit !important;
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -527,17 +532,17 @@ for idx, row in sample_games.iterrows():
     bar_width  = current_val * 10
 
     st.markdown(f"""
-    <div class="rating-card">
+    <div class="rating-card" style="background:white!important;color:#111!important">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.4rem">
             <div>
-                <span style="font-weight:700;font-size:1rem">{game_name}</span><br>
-                <span style="color:#888;font-size:0.78rem">
+                <span style="font-weight:700;font-size:1rem;color:#111!important">{game_name}</span><br>
+                <span style="color:#666!important;font-size:0.78rem">
                     🎲 {row['Mecànica_principal']} &nbsp;·&nbsp;
                     ⚖️ {row['pes']:.1f} &nbsp;·&nbsp;
                     ⭐ {row['nota_bgg']:.1f}
                 </span>
             </div>
-            <span style="font-size:1.6rem;font-weight:800;color:{bar_color};min-width:2rem;text-align:right">
+            <span style="font-size:1.6rem;font-weight:800;color:{bar_color}!important;min-width:2rem;text-align:right">
                 {current_val}
             </span>
         </div>
