@@ -620,11 +620,11 @@ _var_cycle = _var % 5
 
 _weight_profiles = {
     #              PLAYTIME  MECH   NUMPLAYS  RATING
-    0: dict(pt=2.0, mec=2.3, np=1.5, rt=2.0),  # base
-    1: dict(pt=1.0, mec=4.0, np=1.0, rt=1.5),  # èmfasi mecàniques
-    2: dict(pt=3.5, mec=1.5, np=1.0, rt=1.5),  # èmfasi durada/complexitat
-    3: dict(pt=1.5, mec=1.5, np=1.0, rt=3.5),  # èmfasi nota BGG
-    4: dict(pt=1.0, mec=3.5, np=2.0, rt=3.0),  # mecàniques + nota
+    0: dict(pt=2.0, mec=2.3, np=1.5, rt=1.0),  # base
+    1: dict(pt=1.0, mec=4.0, np=1.0, rt=1.0),  # èmfasi mecàniques
+    2: dict(pt=3.5, mec=1.5, np=1.0, rt=1.0),  # èmfasi durada/complexitat
+    3: dict(pt=1.5, mec=1.5, np=1.0, rt=2.5),  # èmfasi nota BGG
+    4: dict(pt=1.0, mec=4, np=2.0, rt=3.0),  # mecàniques + nota
 }
 _wp = _weight_profiles[_var_cycle]
 
