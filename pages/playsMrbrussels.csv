@@ -1,4 +1,12 @@
 "Play ID","Game ID",Name,Expansion,Date,Plays,Location,Duration,Incomplete,Report,Count,Players,Winner
+117595739,462134,"Time's Up Express",-,2026-08-16,x1,"casa pama",-,-,#BGCatalog,5,"gerard, guillaum, Cristina, papa, mama","gerard, guillaum"
+117595685,462134,"Time's Up Express",-,2026-08-16,x1,"casa pama",-,-,#BGCatalog,5,"gerard, guillaum, mama, Cristina, papa","Cristina, papa"
+117586971,364073,"Splendor Duel",-,2026-08-16,x1,"nova casa puchins",-,-,"#BGCatalog Expansión usada: Splendor Duel: The Counterfeiters",2,"Cristina, gerard",gerard
+117551407,436126,Finspan,-,2026-08-15,x1,"caron peleon",-,-,#BGCatalog,6,"Erika (109), Marta CosmicE (103), andres DS (117), david CosmicE (102), gerard (101), marta ds (117)","andres DS, marta ds"
+117551367,417323,"Panda Spin",-,2026-08-15,x1,"caron peleon",-,-,#BGCatalog,3,"andres DS, gerard, marta ds",gerard
+117551363,417323,"Panda Spin",-,2026-08-15,x1,"caron peleon",-,-,#BGCatalog,3,"andres DS, gerard, marta ds","andres DS"
+117534791,403441,"Windmill Valley",-,2026-08-15,x1,"casa artur",-,-,"#BGCatalog Expansión usada: Windmill Valley: Blooming Sails",3,"Artur DarkStone (209), Barbut Indepe (120), gerard (163)","Artur DarkStone"
+117106368,364073,"Splendor Duel",-,2026-08-04,x1,"nova casa puchins",-,-,#BGCatalog,2,"Cristina, gerard",Cristina
 116944937,298271,Cutterland,-,2026-08-01,x1,"torre oscura",-,-,#BGCatalog,2,"gerard (49), luis navas (41)",gerard
 116750878,417323,"Panda Spin",-,2026-07-25,x1,"abalu madrid",-,-,#BGCatalog,3,"david b (17), fran (5), gerard (19)",gerard
 116378164,39463,"Cosmic Encounter",-,2026-07-18,x1,"casa sambet",-,-,#BGCatalog,6,"Alba Mas Madera, Anonymous player, gerard, ruben ASSO, victor ds, xandru",gerard
