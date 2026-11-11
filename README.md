@@ -10,5 +10,6 @@ Datsources:
 
 REFRESH de les mecaniques de la col·lecció:
 
-cal executar el arxiu de jupyter adjunt aqui, i despres el csv resultant pujar-lo a la carpeta de pages (sobreescribint l'actual)
+cal executar el arxiu de jupyter adjunt aqui (des de dins del repositori). Llegeix `pages/collection.csv` i actualitza directament `pages/bgg_mechanics_cache.csv`; després només cal fer commit i push del csv.
+Si les dades són en una altra carpeta, es poden indicar amb les variables d'entorn `BGG_COLLECTION_CSV` i `BGG_CACHE_CSV`.
 
