@@ -1,0 +1,17 @@
+# Tema comú per a totes les pàgines. Streamlit tria el clar o el fosc
+# segons la preferència del sistema (i l'usuari ho pot canviar al menú ⋮).
+
+[theme]
+baseRadius = "medium"
+
+[theme.light]
+primaryColor = "#E8703A"
+backgroundColor = "#FFF4E6"
+secondaryBackgroundColor = "#FFE8D1"
+textColor = "#1F1A16"
+
+[theme.dark]
+primaryColor = "#F08A55"
+backgroundColor = "#1C1714"
+secondaryBackgroundColor = "#2B221C"
+textColor = "#F3EAE2"

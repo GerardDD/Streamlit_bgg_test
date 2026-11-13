@@ -4,9 +4,20 @@ import plotly.express as px
 from itertools import combinations
 from datetime import timedelta
 
-from utils import PLAYS_CSV, load_csv, split_players
+from utils import (
+    ACCENT,
+    PLAYS_CSV,
+    UPLOADED_PLAYS_KEY,
+    forget_upload,
+    load_csv,
+    load_csv_bytes,
+    remember_upload,
+    split_players,
+    style_plotly,
+    uploaded_name,
+)
 
-st.set_page_config(layout="wide")
+st.set_page_config(page_title="Estadístiques de partides", page_icon="🎮", layout="wide")
 st.title("🎮 Estadístiques de Partides")
 
 # ============================================================
@@ -15,8 +26,12 @@ st.title("🎮 Estadístiques de Partides")
 
 
 @st.cache_data(show_spinner=False)
-def load_plays(path: str) -> pd.DataFrame:
-    df = load_csv(path).copy()
+def prepare_plays(raw: pd.DataFrame) -> pd.DataFrame:
+    df = raw.copy()
+
+    if "Date" not in df.columns:
+        st.error("⚠️ El CSV de partides no té la columna 'Date'.")
+        st.stop()
 
     if "Players" not in df.columns:
         df["Players"] = ""
@@ -42,7 +57,32 @@ def load_plays(path: str) -> pd.DataFrame:
     return df
 
 
-df_2 = load_plays(PLAYS_CSV)
+# --- Font de dades: CSV per defecte o CSV pujat (es manté en canviar de pàgina) ---
+with st.sidebar.expander("📂 Dades de partides", expanded=bool(uploaded_name(UPLOADED_PLAYS_KEY))):
+    fitxer_partides = st.file_uploader(
+        "Puja un CSV de partides (mateix format que l'exportació de plays):",
+        type=["csv"],
+        key=f"plays_uploader_{st.session_state.get('plays_uploader_n', 0)}",
+    )
+    if fitxer_partides is not None:
+        remember_upload(UPLOADED_PLAYS_KEY, fitxer_partides)
+    nom_partides = uploaded_name(UPLOADED_PLAYS_KEY)
+    if nom_partides:
+        st.success(f"Fent servir **{nom_partides}**")
+        if st.button("↩️ Tornar a les partides per defecte"):
+            forget_upload(UPLOADED_PLAYS_KEY)
+            # Canviem la clau del file_uploader perquè es buidi
+            st.session_state['plays_uploader_n'] = st.session_state.get('plays_uploader_n', 0) + 1
+            st.rerun()
+    else:
+        st.caption(f"Fent servir {PLAYS_CSV}")
+
+if uploaded_name(UPLOADED_PLAYS_KEY):
+    raw_plays = load_csv_bytes(st.session_state[UPLOADED_PLAYS_KEY]["data"])
+else:
+    raw_plays = load_csv(PLAYS_CSV)
+
+df_2 = prepare_plays(raw_plays)
 
 if df_2.empty:
     st.warning("El CSV de partides no té cap partida amb data vàlida.")
@@ -187,13 +227,14 @@ else:
         x="Date",
         y="count",
         markers=True,
-        title=f"Evolució de partides ({grouping.lower()})"
+        title=f"Evolució de partides ({grouping.lower()})",
+        color_discrete_sequence=[ACCENT]
     )
 
     fig_time.update_xaxes(tickformat=tick_format, nticks=12)
     fig_time.update_traces(line=dict(width=3), hovertemplate="Data: %{x}<br>Partides: %{y}")
 
-    st.plotly_chart(fig_time, width="stretch")
+    st.plotly_chart(style_plotly(fig_time), width="stretch")
 
 # ============================================================
 # 🔵 TOP JOCS
@@ -211,10 +252,13 @@ if game_col and not df_filtered.empty:
         y="Name",
         orientation="h",
         title="Top 10 jocs més jugats",
-        text="count"
+        text="count",
+        labels={"count": "Partides", "Name": ""},
+        color_discrete_sequence=[ACCENT]
     )
+    fig_games.update_traces(textposition="outside", cliponaxis=False)
     fig_games.update_layout(yaxis=dict(autorange="reversed"))
-    st.plotly_chart(fig_games, width="stretch")
+    st.plotly_chart(style_plotly(fig_games), width="stretch")
 
 # ============================================================
 # 🔵 TOP JUGADORS
@@ -239,10 +283,13 @@ if not df_filtered.empty:
         y="Player",
         orientation="h",
         title="Top 10 jugadors més actius",
-        text="count"
+        text="count",
+        labels={"count": "Partides", "Player": ""},
+        color_discrete_sequence=[ACCENT]
     )
+    fig_players.update_traces(textposition="outside", cliponaxis=False)
     fig_players.update_layout(yaxis=dict(autorange="reversed"))
-    st.plotly_chart(fig_players, width="stretch")
+    st.plotly_chart(style_plotly(fig_players), width="stretch")
 
 # ============================================================
 # 🔵 % DE VICTÒRIES
@@ -313,22 +360,24 @@ else:
     if df_wr.empty:
         st.info("Cap jugador arriba al mínim de partides. Baixa el mínim.")
     else:
+        df_wr_top = df_wr.head(20)
         fig_wr = px.bar(
-            df_wr.head(20),
+            df_wr_top,
             x="% victòries",
             y="Jugador",
             orientation="h",
-            text=df_wr.head(20).apply(
+            text=df_wr_top.apply(
                 lambda r: f"{r['% victòries']:.0f}% ({r['Victòries']}/{int(r['Partides'])})", axis=1
             ),
             title="Jugadors amb més % de victòries",
-            color="% victòries",
-            color_continuous_scale="Greens",
-            range_x=[0, 105]
+            labels={"Jugador": ""},
+            color_discrete_sequence=[ACCENT],
+            range_x=[0, 115],
+            height=120 + 28 * len(df_wr_top),
         )
-        fig_wr.update_traces(textposition="outside")
-        fig_wr.update_layout(yaxis=dict(autorange="reversed"), coloraxis_showscale=False)
-        st.plotly_chart(fig_wr, width="stretch")
+        fig_wr.update_traces(textposition="outside", cliponaxis=False)
+        fig_wr.update_layout(yaxis=dict(autorange="reversed"))
+        st.plotly_chart(style_plotly(fig_wr), width="stretch")
 
     # --- % de victòries per joc d'un jugador ---
     if game_col:
@@ -414,6 +463,6 @@ if not df_filtered.empty:
             color_continuous_scale="Blues",
             title="Freqüència de jugadors que coincideixen en partides"
         )
-        st.plotly_chart(fig_heatmap, width="stretch")
+        st.plotly_chart(style_plotly(fig_heatmap), width="stretch")
     else:
         st.info("No hi ha prou dades per generar el heatmap.")

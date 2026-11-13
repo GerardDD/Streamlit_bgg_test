@@ -1,0 +1,55 @@
+name: Actualitzar mecàniques de BGG
+
+on:
+  # Cada dilluns a les 05:17 UTC
+  schedule:
+    - cron: "17 5 * * 1"
+  # Quan es puja una col·lecció nova a main
+  push:
+    branches: [main]
+    paths: [pages/collection.csv]
+  # Manualment des de la pestanya Actions
+  workflow_dispatch:
+    inputs:
+      all:
+        description: "Tornar a descarregar tots els jocs"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-mechanics
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Instal·lar dependències
+        run: pip install pandas requests
+
+      - name: Actualitzar la caché
+        env:
+          BGG_API_TOKEN: ${{ secrets.BGG_API_TOKEN }}
+        run: python scripts/update_mechanics_cache.py ${{ inputs.all && '--all' || '' }}
+
+      - name: Commit si hi ha canvis
+        run: |
+          if git diff --quiet -- pages/bgg_mechanics_cache.csv; then
+            echo "Cap canvi a la caché."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pages/bgg_mechanics_cache.csv
+          git commit -m "Actualitzar caché de mecàniques de BGG"
+          git push

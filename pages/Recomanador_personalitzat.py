@@ -9,281 +9,28 @@ from bs4 import BeautifulSoup
 import re
 import ast
 
-from utils import COLLECTION_CSV, clean_mechanics, load_csv
+from utils import (
+    COLLECTION_CSV,
+    UPLOADED_COLLECTION_KEY,
+    bgg_url,
+    clean_mechanics,
+    load_shared_csv,
+    uploaded_name,
+)
 
-st.set_page_config(layout="centered")
+st.set_page_config(page_title="Recomanador", page_icon="🎯", layout="centered")
 
-# ============================================================
-# CSS RESPONSIVE
-# ============================================================
-st.markdown("""
-<style>
-/* ══════════════════════════════════════════════════════════
-   SCROLL VERTICAL
-══════════════════════════════════════════════════════════ */
-html {
-    scroll-behavior: smooth !important;
-}
-
-/* Barra de scroll personalitzada (Chrome/Edge/Safari) */
-::-webkit-scrollbar {
-    width: 6px !important;
-}
-::-webkit-scrollbar-track {
-    background: transparent !important;
-}
-::-webkit-scrollbar-thumb {
-    background: rgba(232,112,58,0.4) !important;
-    border-radius: 99px !important;
-}
-::-webkit-scrollbar-thumb:hover {
-    background: rgba(232,112,58,0.75) !important;
-}
-
-/* Firefox */
-* {
-    scrollbar-width: thin !important;
-    scrollbar-color: rgba(232,112,58,0.4) transparent !important;
-}
-
-/* ══════════════════════════════════════════════════════════
-   TOKENS
-══════════════════════════════════════════════════════════ */
-:root {
-    --accent:       #E8703A;
-    --accent-dark:  #C95A28;
-    --accent-light: #FDE8DC;
-    --surface:      #FAFAFA;
-    --border:       rgba(0,0,0,0.08);
-    --text-muted:   #888;
-    --radius-sm:    8px;
-    --radius-md:    12px;
-    --radius-lg:    16px;
-    --shadow-sm:    0 1px 3px rgba(0,0,0,0.08);
-    --shadow-md:    0 4px 12px rgba(0,0,0,0.10);
-    --touch:        44px;
-}
-
-/* ══════════════════════════════════════════════════════════
-   LAYOUT GLOBAL
-══════════════════════════════════════════════════════════ */
-.block-container {
-    max-width: 900px !important;
-    padding: 2rem 2rem 4rem !important;
-}
-
-/* ══════════════════════════════════════════════════════════
-   TIPOGRAFIA
-══════════════════════════════════════════════════════════ */
-h1 { font-size: 1.75rem !important; font-weight: 800 !important; letter-spacing: -0.5px; }
-h2 { font-size: 1.35rem !important; font-weight: 700 !important; }
-h3 { font-size: 1.1rem  !important; font-weight: 600 !important; }
-
-/* ══════════════════════════════════════════════════════════
-   BOTONS GLOBALS — disseny net i modern
-══════════════════════════════════════════════════════════ */
-.stButton > button {
-    border-radius: var(--radius-sm) !important;
-    font-weight: 600 !important;
-    font-size: 0.9rem !important;
-    min-height: var(--touch) !important;
-    padding: 0.5rem 1.25rem !important;
-    transition: all 0.15s ease !important;
-    border: 1.5px solid var(--border) !important;
-    box-shadow: var(--shadow-sm) !important;
-}
-.stButton > button:hover {
-    transform: translateY(-1px) !important;
-    box-shadow: var(--shadow-md) !important;
-}
-/* Botó primari */
-.stButton > button[kind="primary"] {
-    background: var(--accent) !important;
-    color: white !important;
-    border-color: var(--accent) !important;
-}
-.stButton > button[kind="primary"]:hover {
-    background: var(--accent-dark) !important;
-    border-color: var(--accent-dark) !important;
-}
-/* Botó secundari */
-.stButton > button[kind="secondary"] {
-    background: white !important;
-    color: #333 !important;
-}
-.stButton > button[kind="secondary"]:hover {
-    background: var(--surface) !important;
-    border-color: #bbb !important;
-}
-
-/* ══════════════════════════════════════════════════════════
-   SLIDERS
-══════════════════════════════════════════════════════════ */
-.stSlider [data-baseweb="slider"] {
-    padding-top: 0.5rem !important;
-    padding-bottom: 0.5rem !important;
-}
-.stSlider [data-testid="stThumbValue"] {
-    background: var(--accent) !important;
-    color: white !important;
-    border-radius: 6px !important;
-    font-weight: 700 !important;
-    font-size: 0.8rem !important;
-    padding: 2px 6px !important;
-}
-
-/* ══════════════════════════════════════════════════════════
-   SELECTBOX I INPUTS
-══════════════════════════════════════════════════════════ */
-.stSelectbox > div > div {
-    border-radius: var(--radius-sm) !important;
-    min-height: var(--touch) !important;
-}
-.stSelectbox > div > div:focus-within {
-    border-color: var(--accent) !important;
-    box-shadow: 0 0 0 2px var(--accent-light) !important;
-}
-
-/* ══════════════════════════════════════════════════════════
-   CARDS DE VALORACIÓ
-══════════════════════════════════════════════════════════ */
-.rating-card {
-    background: white !important;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    padding: 0.85rem 1rem;
-    margin-bottom: 0.6rem;
-    box-shadow: var(--shadow-sm);
-    transition: box-shadow 0.15s;
-    color: #111 !important;
-}
-.rating-card:hover {
-    box-shadow: var(--shadow-md);
-}
-.rating-card span,
-.rating-card div {
-    color: inherit !important;
-}
-
-/* ══════════════════════════════════════════════════════════
-   BOTONS DE VALORACIÓ NUMÈRICA (1-10)
-══════════════════════════════════════════════════════════ */
-.rating-btn-row button {
-    padding: 0 !important;
-    min-height: 38px !important;
-    font-size: 0.85rem !important;
-    font-weight: 700 !important;
-    border-radius: 6px !important;
-    border: 1.5px solid var(--border) !important;
-    background: white !important;
-    color: #555 !important;
-    box-shadow: none !important;
-    transition: all 0.1s ease !important;
-}
-.rating-btn-row button:hover {
-    border-color: var(--accent) !important;
-    color: var(--accent) !important;
-    transform: translateY(-1px) !important;
-    box-shadow: 0 2px 6px rgba(232,112,58,0.2) !important;
-}
-/* Botó actiu */
-.rating-btn-row button[kind="primary"] {
-    background: var(--accent) !important;
-    color: white !important;
-    border-color: var(--accent) !important;
-    box-shadow: 0 2px 8px rgba(232,112,58,0.35) !important;
-}
-
-/* ══════════════════════════════════════════════════════════
-   CHECKBOX
-══════════════════════════════════════════════════════════ */
-.stCheckbox label {
-    font-size: 0.9rem !important;
-    min-height: var(--touch) !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 0.4rem !important;
-}
-
-/* ══════════════════════════════════════════════════════════
-   DIVIDER
-══════════════════════════════════════════════════════════ */
-hr {
-    border: none !important;
-    border-top: 1px solid var(--border) !important;
-    margin: 1.5rem 0 !important;
-}
-
-/* ══════════════════════════════════════════════════════════
-   DATAFRAME
-══════════════════════════════════════════════════════════ */
-.stDataFrame {
-    border-radius: var(--radius-md) !important;
-    overflow: hidden !important;
-    box-shadow: var(--shadow-sm) !important;
-}
-
-/* ══════════════════════════════════════════════════════════
-   CAPTION / BADGE
-══════════════════════════════════════════════════════════ */
-.stCaption {
-    color: var(--text-muted) !important;
-    font-size: 0.82rem !important;
-}
-
-/* ══════════════════════════════════════════════════════════
-   MÒBIL  (≤ 640px)
-══════════════════════════════════════════════════════════ */
-@media (max-width: 640px) {
-    .block-container {
-        padding: 1rem 0.75rem 3rem !important;
-        max-width: 100% !important;
-    }
-
-    h1 { font-size: 1.3rem  !important; }
-    h2 { font-size: 1.15rem !important; }
-    h3 { font-size: 1rem    !important; }
-
-    /* Botons a amplada completa */
-    .stButton > button {
-        width: 100% !important;
-        font-size: 0.95rem !important;
-    }
-
-    /* Columnes → apilament vertical */
-    [data-testid="column"] {
-        width: 100% !important;
-        flex: 1 1 100% !important;
-        min-width: 100% !important;
-    }
-
-    /* Botons numèrics més grans en tàctil */
-    .rating-btn-row button {
-        min-height: var(--touch) !important;
-        font-size: 0.9rem !important;
-    }
-
-    /* Taules scroll horitzontal */
-    .stDataFrame {
-        overflow-x: auto !important;
-    }
-
-    /* Imatges */
-    img {
-        max-width: 100% !important;
-        height: auto !important;
-    }
-
-    .stCaption { font-size: 0.8rem !important; }
-}
-</style>
-""", unsafe_allow_html=True)
 
 st.title("🎯 Recomanador personalitzat de jocs")
 
 # ============================================================
 # FUNCIONS DE MECÀNIQUES BGG
 # ============================================================
+
+def md_escape(text) -> str:
+    """Escapa els caràcters especials de Markdown (noms de jocs amb *, _, [, ...)."""
+    return re.sub(r"([\\`*_{}\[\]()#+\-.!|>~:$])", r"\\\1", str(text))
+
 
 BGG_CACHE_FILE = "pages/bgg_mechanics_cache.csv"
 
@@ -311,15 +58,17 @@ def load_mechanics_cache() -> dict:
 # ============================================================
 
 @st.cache_data(show_spinner=False)
-def prepare_collection(path: str):
+def prepare_collection(raw: pd.DataFrame):
     """Carrega la col·lecció, neteja columnes i afegeix les mecàniques one-hot.
 
     Retorna (df, mec_col_names, all_mec_names, has_personal_ratings).
     """
-    df = load_csv(path).copy()
+    df = raw.copy()
 
-    if "playingtime" not in df.columns:
-        st.error("⚠️ La columna 'playingtime' no existeix al CSV!")
+    falten = [c for c in ["objectname", "avgweight", "average", "minplayers", "maxplayers", "playingtime"]
+              if c not in df.columns]
+    if falten:
+        st.error("⚠️ Al CSV de la col·lecció li falten columnes: " + ", ".join(falten))
         st.stop()
 
     df["playingtime"] = df["playingtime"].fillna(df["playingtime"].median())
@@ -337,7 +86,7 @@ def prepare_collection(path: str):
     # Excloure jocs amb pes 0 (sense dades de complexitat a BGG)
     df = df[df["pes"] > 0]
 
-    df["comment"] = clean_mechanics(df["comment"])
+    df["comment"] = clean_mechanics(df["comment"] if "comment" in df.columns else pd.Series("", index=df.index))
     df = df.rename(columns={"comment": "Mecànica_principal"})
 
     if "own" not in df.columns:
@@ -387,11 +136,19 @@ def prepare_collection(path: str):
     return df, list(mec_cols.columns), all_mec_names, has_personal_ratings
 
 
-df, _mec_col_names, all_mec_names, has_personal_ratings = prepare_collection(COLLECTION_CSV)
+_raw_collection = load_shared_csv(UPLOADED_COLLECTION_KEY, COLLECTION_CSV)
+_nom_pujat = uploaded_name(UPLOADED_COLLECTION_KEY)
+if _nom_pujat:
+    st.info(
+        f"📁 Fent servir la col·lecció pujada **{_nom_pujat}**. "
+        "Les mecàniques detallades només estan disponibles per als jocs de la caché del repositori."
+    )
+
+df, _mec_col_names, all_mec_names, has_personal_ratings = prepare_collection(_raw_collection)
 df = df.copy()
 mec_cols = df[_mec_col_names]
 
-if "own" not in load_csv(COLLECTION_CSV).columns:
+if "own" not in _raw_collection.columns:
     st.warning("⚠️ El CSV no té la columna 'own'. Es considera que no tens cap joc en propietat.")
 
 # Estat de variació de recomanació (s'incrementa amb el botó)
@@ -510,8 +267,10 @@ def select_strategic_games(df: pd.DataFrame, n: int = 10) -> pd.DataFrame:
     return result[["nom_del_joc", "pes", "nota_bgg", "minplayers", "maxplayers", "Mecànica_principal"]]
 
 
-if "sample_games" not in st.session_state:
+# Regenerem la selecció si és la primera vegada o si ha canviat la col·lecció (CSV pujat/per defecte)
+if "sample_games" not in st.session_state or st.session_state.get("sample_games_src") != _nom_pujat:
     st.session_state.sample_games = select_strategic_games(df, n=10)
+    st.session_state["sample_games_src"] = _nom_pujat
 
 col_refresh1, col_refresh2 = st.columns([1, 1])
 with col_refresh1:
@@ -544,55 +303,26 @@ for idx, row in sample_games.iterrows():
     rating_key = f"rating_{game_name}"
     ignore_key = f"ignore_{game_name}"
 
-    if rating_key not in st.session_state:
+    if st.session_state.get(rating_key) is None:
         st.session_state[rating_key] = 5
 
-    current_val = st.session_state[rating_key]
+    with st.container(border=True):
+        st.markdown(f"**{md_escape(game_name)}**")
+        st.caption(
+            f"🎲 {md_escape(row['Mecànica_principal'])} · "
+            f"⚖️ {row['pes']:.1f} · ⭐ {row['nota_bgg']:.1f}"
+        )
+        # Escala 1-10 (el valor es guarda directament a st.session_state[rating_key])
+        st.segmented_control(
+            f"Valoració de {game_name}",
+            options=list(range(1, 11)),
+            key=rating_key,
+            label_visibility="collapsed",
+        )
+        st.checkbox("Ignorar aquest joc", key=ignore_key)
 
-    # Color de la barra de valoració (verd si alt, taronja si mig, gris si baix)
-    bar_color = "#4CAF50" if current_val >= 8 else "#E8703A" if current_val >= 5 else "#ccc"
-    bar_width  = current_val * 10
-
-    st.markdown(f"""
-    <div class="rating-card" style="background:white!important;color:#111!important">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.4rem">
-            <div>
-                <span style="font-weight:700;font-size:1rem;color:#111!important">{game_name}</span><br>
-                <span style="color:#666!important;font-size:0.78rem">
-                    🎲 {row['Mecànica_principal']} &nbsp;·&nbsp;
-                    ⚖️ {row['pes']:.1f} &nbsp;·&nbsp;
-                    ⭐ {row['nota_bgg']:.1f}
-                </span>
-            </div>
-            <span style="font-size:1.6rem;font-weight:800;color:{bar_color}!important;min-width:2rem;text-align:right">
-                {current_val}
-            </span>
-        </div>
-        <div style="background:#eee;border-radius:4px;height:4px;margin-bottom:0.6rem">
-            <div style="background:{bar_color};width:{bar_width}%;height:4px;border-radius:4px;transition:width 0.2s"></div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Fila de botons numèrics
-    st.markdown('<div class="rating-btn-row">', unsafe_allow_html=True)
-    btn_cols = st.columns(10)
-    for i, bcol in enumerate(btn_cols):
-        val       = i + 1
-        btn_type  = "primary" if current_val == val else "secondary"
-        with bcol:
-            if st.button(str(val), key=f"btn_{game_name}_{val}", type=btn_type):
-                st.session_state[rating_key] = val
-                st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    # Checkbox ignorar inline sota els botons
-    ignore = st.checkbox(
-        "Ignorar aquest joc", key=ignore_key,
-    )
-    st.markdown("<div style='height:0.25rem'></div>", unsafe_allow_html=True)
-
-    user_ratings[game_name]  = st.session_state[rating_key]
+    # Si l'usuari desmarca l'opció seleccionada, la tractem com a neutra (5)
+    user_ratings[game_name]  = st.session_state.get(rating_key) or 5
     ignore_flags[game_name]  = st.session_state.get(ignore_key, False)
 
 # ============================================================
@@ -757,13 +487,51 @@ if recommendations_display.empty and not recommendations.empty:
 if recommendations.empty:
     st.success("🎉 No hi ha recomanacions noves!")
 else:
-    display_cols = ["nom_del_joc", "similarity", "Mecànica_principal",
+    taula_rec = recommendations_display.copy()
+    # La similitud del cosinus va de -1 a 1; la mostrem com a afinitat 0-100 %
+    taula_rec["afinitat"] = taula_rec["similarity"].clip(lower=0)
+    if "objectid" in taula_rec.columns:
+        taula_rec["bgg"] = taula_rec["objectid"].map(bgg_url)
+
+    display_cols = ["bgg", "nom_del_joc", "afinitat", "Mecànica_principal",
                     "pes", "nota_bgg", "playingtime", "minplayers", "maxplayers", "numplays"]
     if use_personal_rating:
         display_cols.append("rating_personal")
-    st.write(recommendations_display[[c for c in display_cols if c in recommendations_display.columns]])
+    taula_rec = taula_rec[[c for c in display_cols if c in taula_rec.columns]]
 
-    st.markdown("---")
+    st.dataframe(
+        taula_rec,
+        hide_index=True,
+        column_config={
+            "bgg": st.column_config.LinkColumn("BGG", display_text="🔗", width="small"),
+            "nom_del_joc": st.column_config.TextColumn("Joc", width="medium"),
+            "afinitat": st.column_config.ProgressColumn(
+                "Afinitat", min_value=0, max_value=1, format="percent",
+                help="Com s'assembla el joc al teu perfil (similitud del cosinus)."
+            ),
+            "Mecànica_principal": st.column_config.TextColumn("Mecànica"),
+            "pes": st.column_config.NumberColumn("Pes", format="%.2f"),
+            "nota_bgg": st.column_config.NumberColumn("Nota BGG", format="%.1f"),
+            "playingtime": st.column_config.NumberColumn("Durada", format="%d min"),
+            "minplayers": st.column_config.NumberColumn("Mín. jug.", format="%d"),
+            "maxplayers": st.column_config.NumberColumn("Màx. jug.", format="%d"),
+            "numplays": st.column_config.NumberColumn("Partides", format="%d"),
+            "rating_personal": st.column_config.NumberColumn("La meva nota", format="%.1f"),
+        },
+    )
+
+    st.download_button(
+        "⬇️ Descarregar recomanacions (CSV)",
+        data=(
+            taula_rec.drop(columns=["bgg"], errors="ignore")
+            .assign(afinitat=lambda d: (d["afinitat"] * 100).round(1))
+            .to_csv(index=False)
+            .encode("utf-8")
+        ),
+        file_name="recomanacions.csv",
+        mime="text/csv",
+    )
+    st.divider()
 
     # ── Etiquetes de variació ─────────────────────────────────────
     _var_labels = {
@@ -897,10 +665,9 @@ else:
     fig_cluster.update_layout(
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#000000"),
         legend_title_text="Grup",
-        xaxis=dict(showgrid=True, gridcolor="rgba(0,0,0,0.1)", title="UMAP 1"),
-        yaxis=dict(showgrid=True, gridcolor="rgba(0,0,0,0.1)", title="UMAP 2"),
+        xaxis=dict(title="UMAP 1"),
+        yaxis=dict(title="UMAP 2"),
     )
 
     st.plotly_chart(fig_cluster, width="stretch")

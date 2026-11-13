@@ -1,10 +1,10 @@
-streamlit
-plotly.express
-plotly
-pandas
-scikit-learn
-numpy
-requests
-beautifulsoup4
-lxml
-umap-learn
+# Versions fixades (provades juntes). Per actualitzar-les: canvia el número,
+# executa `python -m pytest` i, si tot passa, fes commit.
+streamlit==1.67.0
+plotly==7.1.0
+pandas==3.0.5
+numpy==2.5.3
+scikit-learn==1.9.1
+umap-learn==0.6.0
+requests==2.34.2
+beautifulsoup4==4.15.0
