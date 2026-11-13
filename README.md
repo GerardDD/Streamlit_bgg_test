@@ -16,6 +16,22 @@ IMPORTANT: totes les llibreries de Python que es facin servir als `.py` han d'es
 - **Pàgina principal i recomanador**: CSV exportat manualment de BGG (*Collection → Export*), filtrant per *All* o *Owned* (els dos funcionen). Per defecte es fa servir `pages/collection.csv`; també es pot pujar un CSV des de la barra lateral de la pàgina principal i el recomanador el farà servir mentre duri la sessió.
 - **Estadístiques de partides**: CSV exportat manualment de l'apartat *Plays*. Per defecte `pages/playsMrbrussels.csv`; es pot pujar un altre CSV des de la barra lateral de la pàgina.
 
+### Descàrrega automàtica (`pages/collection.csv` i `pages/playsMrbrussels.csv`)
+
+Ja no cal exportar-los a mà: la GitHub Action **Descarregar col·lecció i partides de BGG** (`.github/workflows/update-bgg-data.yml`) els baixa de l'API XML oficial de BGG cada dia (o manualment des de la pestanya *Actions*), actualitza les mecàniques dels jocs nous i fa commit només si alguna cosa ha canviat.
+
+- L'usuari de BGG és `Mrbrussels` per defecte; es pot canviar amb la variable del repositori `BGG_USERNAME` (*Settings → Secrets and variables → Actions → Variables*).
+- Fa servir el mateix secret `BGG_API_TOKEN` que l'actualització de mecàniques.
+- La col·lecció inclou només els jocs en propietat, amb les mateixes columnes que l'exportació manual. Els camps privats (preu pagat, comentari privat...) i els recomanats per nombre de jugadors queden buits perquè l'API pública no els dona; l'app no els fa servir.
+
+En local:
+
+```bash
+python scripts/download_bgg_data.py                    # col·lecció i partides
+python scripts/download_bgg_data.py --only plays       # només partides
+python scripts/download_bgg_data.py --username Altre   # un altre usuari
+```
+
 ## Mecàniques de la col·lecció (`pages/bgg_mechanics_cache.csv`)
 
 S'actualitzen automàticament amb la GitHub Action **Actualitzar mecàniques de BGG** (`.github/workflows/update-mechanics.yml`):
