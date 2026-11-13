@@ -7,6 +7,9 @@ import os
 import requests
 from bs4 import BeautifulSoup
 import re
+import ast
+
+from utils import COLLECTION_CSV, clean_mechanics, load_csv
 
 st.set_page_config(layout="centered")
 
@@ -284,6 +287,7 @@ st.title("🎯 Recomanador personalitzat de jocs")
 
 BGG_CACHE_FILE = "pages/bgg_mechanics_cache.csv"
 
+@st.cache_data(show_spinner=False)
 def load_mechanics_cache() -> dict:
     if not os.path.exists(BGG_CACHE_FILE):
         st.error("⚠️ No s'ha trobat bgg_mechanics_cache.csv al repositori!")
@@ -295,7 +299,7 @@ def load_mechanics_cache() -> dict:
             st.stop()
         return dict(zip(
             cache_df["objectid"].astype(int),
-            cache_df["mechanics"].apply(eval)
+            cache_df["mechanics"].apply(ast.literal_eval)
         ))
     except Exception as e:
         st.error(f"⚠️ Error llegint bgg_mechanics_cache.csv: {e}")
@@ -306,105 +310,95 @@ def load_mechanics_cache() -> dict:
 # LOAD COLLECTION DATA
 # ============================================================
 
-df = pd.read_csv("pages/collection.csv", sep=",", engine="python")
+@st.cache_data(show_spinner=False)
+def prepare_collection(path: str):
+    """Carrega la col·lecció, neteja columnes i afegeix les mecàniques one-hot.
 
-if "playingtime" not in df.columns:
-    st.error("⚠️ La columna 'playingtime' no existeix al CSV!")
-    st.stop()
+    Retorna (df, mec_col_names, all_mec_names, has_personal_ratings).
+    """
+    df = load_csv(path).copy()
 
-df["playingtime"] = df["playingtime"].fillna(df["playingtime"].median())
-df.columns = df.columns.str.strip()
+    if "playingtime" not in df.columns:
+        st.error("⚠️ La columna 'playingtime' no existeix al CSV!")
+        st.stop()
 
-df = df.rename(columns={
-    "objectname": "nom_del_joc",
-    "avgweight": "pes",
-    "average":   "nota_bgg",
-    "yearpublished": "any_publicació"
-})
+    df["playingtime"] = df["playingtime"].fillna(df["playingtime"].median())
 
-required_cols = ["pes", "nota_bgg", "minplayers", "maxplayers"]
-df = df.dropna(subset=required_cols)
+    df = df.rename(columns={
+        "objectname": "nom_del_joc",
+        "avgweight": "pes",
+        "average":   "nota_bgg",
+        "yearpublished": "any_publicació"
+    })
 
-# Excloure jocs amb pes 0 (sense dades de complexitat a BGG)
-df = df[df["pes"] > 0]
+    required_cols = ["pes", "nota_bgg", "minplayers", "maxplayers"]
+    df = df.dropna(subset=required_cols)
 
-df["comment"] = df["comment"].replace(r"^\s*$", "No informat", regex=True)
-df["comment"] = df["comment"].fillna("No informat")
-df["comment"] = df["comment"].replace("Selecció accions",   "Selecció d'accions", regex=True)
-df["comment"] = df["comment"].replace("Car-driven",         "Card-driven",        regex=True)
-df["comment"] = df["comment"].replace("Col·locació daus",   "Col·locació de daus",regex=True)
-df["comment"] = df["comment"].replace("Construcció motor",  "Construcció de motor",regex=True)
-df["comment"] = df["comment"].replace("Draft pùblic",       "Draft públic",       regex=True)
-df["comment"] = df["comment"].replace("Gestió de la mà",   "Gestió de mà",       regex=True)
-df["comment"] = df["comment"].replace("Pseudo-abstracte",   "Pseudo-Abstracte",   regex=True)
-df["comment"] = df["comment"].replace("Pseudo-wargame",     "Pseudo-Wargame",     regex=True)
-df["comment"] = df["comment"].replace("Pseudo-wargames",    "Pseudo-Wargame",     regex=True)
-df["comment"] = df["comment"].replace("Pseudo-Wargames",    "Pseudo-Wargame",     regex=True)
-df = df.rename(columns={"comment": "Mecànica_principal"})
+    # Excloure jocs amb pes 0 (sense dades de complexitat a BGG)
+    df = df[df["pes"] > 0]
 
-if "own" not in df.columns:
-    st.warning("⚠️ El CSV no té la columna 'own'. Es crearà amb valor 0.")
-    df["own"] = 0
-else:
-    df["own"] = pd.to_numeric(df["own"], errors="coerce").fillna(0).astype(int)
+    df["comment"] = clean_mechanics(df["comment"])
+    df = df.rename(columns={"comment": "Mecànica_principal"})
 
-# ============================================================
-# MILLORA 1 — numplays i rating personal com a features
-# ============================================================
-# numplays: quantes vegades has jugat → senyal implícita de preferència
-# rating:   la teva valoració personal (columna "rating" del CSV de BGG)
-#           diferent de "average" que és la mitjana de la comunitat
+    if "own" not in df.columns:
+        df["own"] = 0
+    else:
+        df["own"] = pd.to_numeric(df["own"], errors="coerce").fillna(0).astype(int)
 
-if "numplays" in df.columns:
-    df["numplays"] = pd.to_numeric(df["numplays"], errors="coerce").fillna(0)
-    # Transformació log per reduir l'efecte d'outliers (1 partida vs 50)
-    df["log_numplays"] = np.log1p(df["numplays"])
-else:
-    df["numplays"]     = 0
-    df["log_numplays"] = 0.0
+    # MILLORA 1 — numplays i rating personal com a features
+    # numplays: quantes vegades has jugat → senyal implícita de preferència
+    # rating:   la teva valoració personal (columna "rating" del CSV de BGG)
+    #           diferent de "average" que és la mitjana de la comunitat
+    if "numplays" in df.columns:
+        df["numplays"] = pd.to_numeric(df["numplays"], errors="coerce").fillna(0)
+        # Transformació log per reduir l'efecte d'outliers (1 partida vs 50)
+        df["log_numplays"] = np.log1p(df["numplays"])
+    else:
+        df["numplays"]     = 0
+        df["log_numplays"] = 0.0
 
-if "rating" in df.columns:
-    # La columna "rating" del CSV de BGG és la teva valoració personal
-    # Pot tenir valors "N/A" o buits per jocs no valorats
-    df["rating_personal"] = pd.to_numeric(df["rating"], errors="coerce")
-    has_personal_ratings  = df["rating_personal"].notna().sum()
-else:
-    df["rating_personal"] = np.nan
-    has_personal_ratings  = 0
+    if "rating" in df.columns:
+        # Pot tenir valors "N/A" o buits per jocs no valorats
+        df["rating_personal"] = pd.to_numeric(df["rating"], errors="coerce")
+        has_personal_ratings  = int(df["rating_personal"].notna().sum())
+    else:
+        df["rating_personal"] = np.nan
+        has_personal_ratings  = 0
 
-# ============================================================
-# CÀRREGA DE MECÀNIQUES DES DE CACHÉ LOCAL
-# ============================================================
+    # Mecàniques des de la caché local
+    mechanics_cache = load_mechanics_cache()
+    if "objectid" in df.columns:
+        df["objectid"]      = pd.to_numeric(df["objectid"], errors="coerce")
+        df["all_mechanics"] = df["objectid"].map(
+            lambda oid: mechanics_cache.get(int(oid), []) if pd.notna(oid) else []
+        )
+    else:
+        df["all_mechanics"] = df["Mecànica_principal"].apply(lambda x: [x])
 
-if "mechanics_cache" not in st.session_state:
-    disc_cache = load_mechanics_cache()
-    st.session_state["mechanics_cache"] = disc_cache
+    # One-hot encoding mecàniques
+    all_mec_names = sorted(set(m for mecs in df["all_mechanics"] for m in mecs if m))
+    mec_data = {
+        f"mec_{mec.replace(' ', '_')}": df["all_mechanics"].apply(lambda mecs: 1 if mec in mecs else 0)
+        for mec in all_mec_names
+    }
+    mec_cols = pd.DataFrame(mec_data, index=df.index)
+    df = pd.concat([df, mec_cols], axis=1)
 
-mechanics_cache = st.session_state["mechanics_cache"]
+    return df, list(mec_cols.columns), all_mec_names, has_personal_ratings
+
+
+df, _mec_col_names, all_mec_names, has_personal_ratings = prepare_collection(COLLECTION_CSV)
+df = df.copy()
+mec_cols = df[_mec_col_names]
+
+if "own" not in load_csv(COLLECTION_CSV).columns:
+    st.warning("⚠️ El CSV no té la columna 'own'. Es considera que no tens cap joc en propietat.")
 
 # Estat de variació de recomanació (s'incrementa amb el botó)
 if "variation_idx" not in st.session_state:
     st.session_state["variation_idx"] = 0
 if "excluded_games" not in st.session_state:
     st.session_state["excluded_games"] = []
-
-if "objectid" in df.columns:
-    df["objectid"]      = pd.to_numeric(df["objectid"], errors="coerce")
-    df["all_mechanics"] = df["objectid"].map(
-        lambda oid: mechanics_cache.get(int(oid), []) if pd.notna(oid) else []
-    )
-else:
-    df["all_mechanics"] = df["Mecànica_principal"].apply(lambda x: [x])
-
-# One-hot encoding mecàniques
-all_mec_names = sorted(set(m for mecs in df["all_mechanics"] for m in mecs if m))
-
-mec_data = {
-    f"mec_{mec.replace(' ', '_')}": df["all_mechanics"].apply(lambda mecs: 1 if mec in mecs else 0)
-    for mec in all_mec_names
-}
-mec_cols = pd.DataFrame(mec_data, index=df.index)
-df = pd.concat([df, mec_cols], axis=1)
 
 # ============================================================
 # 1️⃣ USER PREFERENCES
@@ -521,14 +515,14 @@ if "sample_games" not in st.session_state:
 
 col_refresh1, col_refresh2 = st.columns([1, 1])
 with col_refresh1:
-    if st.button("🎯 Regenerar selecció estratègica", use_container_width=True):
+    if st.button("🎯 Regenerar selecció estratègica", width="stretch"):
         st.session_state.sample_games = select_strategic_games(df, n=10)
         # Netejar valoracions anteriors
         for name in st.session_state.sample_games["nom_del_joc"]:
             st.session_state.pop(f"rating_{name}", None)
         st.rerun()
 with col_refresh2:
-    if st.button("🔀 Selecció aleatòria", use_container_width=True):
+    if st.button("🔀 Selecció aleatòria", width="stretch"):
         st.session_state.sample_games = df.sample(10)[
             ["nom_del_joc", "pes", "nota_bgg", "minplayers", "maxplayers", "Mecànica_principal"]
         ]
@@ -790,7 +784,7 @@ else:
     btn_col1, btn_col2 = st.columns([1, 1])
 
     with btn_col1:
-        if st.button("🔀 Suggereix una recomanació diferent", use_container_width=True):
+        if st.button("🔀 Suggereix una recomanació diferent", width="stretch"):
             if not recommendations_display.empty:
                 top_to_exclude = recommendations_display.iloc[0]["nom_del_joc"]
                 excl = st.session_state.get("excluded_games", [])
@@ -802,7 +796,7 @@ else:
 
     with btn_col2:
         if _var_cycle > 0:
-            if st.button("↩️ Tornar a la recomanació principal", use_container_width=True):
+            if st.button("↩️ Tornar a la recomanació principal", width="stretch"):
                 st.session_state["variation_idx"] = 0
                 st.session_state["excluded_games"] = []
                 st.rerun()
@@ -846,20 +840,14 @@ else:
     # Mecàniques amb pes reduït per no dominar el clustering
     X_cluster = np.hstack([X_cl_numeric, mec_cols.values * 0.5])
 
-    # KMeans
-    kmeans        = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
-    cluster_labels = kmeans.fit_predict(X_cluster)
-
-    df_plot             = df[["nom_del_joc", "pes", "nota_bgg", "playingtime",
-                               "Mecànica_principal", "minplayers", "maxplayers", "numplays"]].copy()
-    df_plot["Cluster"]  = cluster_labels.astype(str)
-    if use_personal_rating:
-        df_plot["rating_personal"] = df["rating_personal"]
-
-    # ── MILLORA 3: UMAP en lloc de PCA ──────────────────────────────────────
-    # UMAP preserva millor l'estructura local en espais d'alta dimensió
-    # (centenars de columnes de mecàniques) que PCA
-    with st.spinner("Calculant UMAP (pot trigar uns segons la primera vegada)..."):
+    # KMeans + UMAP amb memòria cau: només es recalculen si canvia la matriu
+    # (variació de pesos) o el nombre de clusters, no a cada clic de valoració.
+    @st.cache_data(show_spinner=False)
+    def compute_clusters_umap(X: np.ndarray, k: int):
+        labels = KMeans(n_clusters=k, random_state=42, n_init=10).fit_predict(X)
+        # ── MILLORA 3: UMAP en lloc de PCA ──────────────────────────────────
+        # UMAP preserva millor l'estructura local en espais d'alta dimensió
+        # (centenars de columnes de mecàniques) que PCA
         reducer = umap.UMAP(
             n_components=2,
             n_neighbors=15,    # equilibri entre estructura local i global
@@ -867,7 +855,16 @@ else:
             metric="cosine",   # consistent amb el recomanador
             random_state=42
         )
-        coords = reducer.fit_transform(X_cluster)
+        return labels, reducer.fit_transform(X)
+
+    with st.spinner("Calculant grups i UMAP (pot trigar uns segons la primera vegada)..."):
+        cluster_labels, coords = compute_clusters_umap(X_cluster, n_clusters)
+
+    df_plot             = df[["nom_del_joc", "pes", "nota_bgg", "playingtime",
+                               "Mecànica_principal", "minplayers", "maxplayers", "numplays"]].copy()
+    df_plot["Cluster"]  = cluster_labels.astype(str)
+    if use_personal_rating:
+        df_plot["rating_personal"] = df["rating_personal"]
 
     df_plot["UMAP_1"] = coords[:, 0]
     df_plot["UMAP_2"] = coords[:, 1]
@@ -906,7 +903,7 @@ else:
         yaxis=dict(showgrid=True, gridcolor="rgba(0,0,0,0.1)", title="UMAP 2"),
     )
 
-    st.plotly_chart(fig_cluster, use_container_width=True)
+    st.plotly_chart(fig_cluster, width="stretch")
 
     # Taula resum per cluster
     st.subheader("📊 Característiques mitjanes per grup")
@@ -931,7 +928,7 @@ else:
         rename_map["rating_personal"] = "Rating personal mitjà"
 
     cluster_summary = cluster_summary.rename(columns=rename_map)
-    st.dataframe(cluster_summary, use_container_width=True)
+    st.dataframe(cluster_summary, width="stretch")
 
     # Mecànica més freqüent per cluster
     st.subheader("🎲 Mecànica més freqüent per grup")
@@ -946,7 +943,7 @@ else:
         .reset_index()[["Cluster", "Mecànica_principal", "count"]]
     )
     top_mec.columns = ["Grup", "Mecànica més freqüent", "Nº jocs amb aquesta mecànica"]
-    st.dataframe(top_mec, use_container_width=True)
+    st.dataframe(top_mec, width="stretch")
 
 # ============================================================
 # 5️⃣ MISUT MEEPLE - RESENYA DEL JOC MÉS RECOMANAT
@@ -1008,9 +1005,9 @@ if not recommendations_display.empty:
         img_col, txt_col = st.columns([1, 2])
         with img_col:
             if result["image"]:
-                st.image(result["image"], use_container_width=True)
+                st.image(result["image"], width="stretch")
             if result["sello"]:
-                st.image(result["sello"], use_container_width=True)
+                st.image(result["sello"], width="stretch")
         with txt_col:
             st.markdown(result["summary"])
     else:
