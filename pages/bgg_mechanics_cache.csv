@@ -104,7 +104,7 @@ objectid,mechanics
 377779,['Trick-taking']
 269257,"['Modular Board', 'Pattern Building', 'Square Grid', 'Tile Placement']"
 171,"['Grid Movement', 'Once-Per-Game Abilities', 'Pattern Movement', 'Square Grid', 'Static Capture', 'Sudden Death Ending']"
-447728,[]
+447728,"['Events', 'Grid Movement', 'Once-Per-Game Abilities', 'Pattern Movement', 'Square Grid', 'Static Capture', 'Sudden Death Ending']"
 156373,"['Auction / Bidding', 'Hand Management', 'Ladder Climbing', 'Team-Based Game']"
 54307,"['Action Retrieval', 'Set Collection', 'Take That', 'Trick-taking']"
 478,"['Action Drafting', 'Closed Drafting', 'Income', 'Lose a Turn', 'Set Collection', 'Take That', 'Turn Order: Role Order', 'Variable Player Powers']"
@@ -587,3 +587,14 @@ objectid,mechanics
 125395,['Dice Rolling']
 368061,"['Bribery', 'Hidden Victory Points', 'Negotiation', 'Once-Per-Game Abilities', 'Point to Point Movement', 'Trading', 'Variable Player Powers', 'Victory Points as a Resource', 'Voting']"
 27588,"['Open Drafting', 'Set Collection', 'Tile Placement']"
+429861,"['Cooperative Game', 'Hand Management', 'Solo / Solitaire Game']"
+421232,"['Deck, Bag, and Pool Building', 'Delayed Purchase', 'Hand Management', 'Income', 'Open Drafting', 'Tags', 'Take That', 'Variable Set-up']"
+341931,"['Action Drafting', 'Action Queue', 'Cooperative Game', 'Player Elimination']"
+400498,"['Area Majority / Influence', 'Elapsed Real Time Ending', 'End Game Bonuses', 'Line of Sight', 'Real-Time', 'Tile Placement', 'Variable Player Powers', 'Variable Set-up']"
+456236,"['Deck, Bag, and Pool Building', 'End Game Bonuses', 'Hand Management', 'Multi-Use Cards', 'Track Movement']"
+462460,"['Contracts', 'Open Drafting', 'Race', 'Set Collection']"
+425560,"['Closed Drafting', 'Tile Placement']"
+130912,"['Cooperative Game', 'Deck, Bag, and Pool Building', 'Dice Rolling']"
+450429,"['Area Majority / Influence', 'Hand Management', 'Income', 'Layering', 'Market', 'Modular Board', 'Multi-Use Cards', 'Once-Per-Game Abilities', 'Open Drafting', 'Point to Point Movement', 'Race', 'Set Collection', 'Sudden Death Ending', 'Take That', 'Variable Player Powers', 'Variable Set-up']"
+462134,[]
+38713,"['Acting', 'Communication Limits', 'Memory', 'Team-Based Game']"
